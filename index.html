@@ -53,18 +53,46 @@ body.shk{animation:shk .4s}
 @keyframes shk{0%,100%{transform:translate(0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,2px)}}
 .pt{position:fixed;width:10px;height:10px;border-radius:50%;pointer-events:none;z-index:9}
 
-/* 모바일 및 터치 조작 스타일 */
+/* 모바일 및 가로모드 스타일 유지 */
 .touch-controls{display:none;gap:12px;margin-top:14px;grid-template-columns:1fr 1fr;user-select:none;-webkit-user-select:none}
 .touch-player{min-width:0;border:1px solid var(--bar);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .touch-title{font-size:13px;font-weight:800}
 .touch-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,44px);gap:5px;width:100%;max-width:180px}
 .touch-pad button,.touch-action{border:1px solid var(--bar);border-radius:9px;background:var(--bar);color:var(--fg);font-weight:800;font-size:17px;touch-action:none;-webkit-tap-highlight-color:transparent}
 .touch-controls button.is-pressed{background:#4c8dff;color:white;border-color:#4c8dff;transform:scale(.97)}
-@media(max-width:700px){body{padding:8px} #wrap{width:min(100%,500px)} canvas{width:100%;height:auto;touch-action:none}}
+@media(max-width:700px){body{padding:8px} #wrap{width:min(100%,500px)} canvas{width:100%;height:auto;touch-action:none} .touch-controls{display:grid}}
 .mobile-controls{display:none}
 #rotateNotice{display:none}
+@media (max-width:900px){
+ html,body{width:100%;height:100%;min-height:100%;overflow:hidden}
+ body{padding:0;display:block;overscroll-behavior:none}
+ #wrap{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;margin:0;display:grid;grid-template-columns:minmax(92px,1fr) min(78dvh,58vw) minmax(92px,1fr);grid-template-rows:1fr;align-items:center;justify-items:center;gap:clamp(4px,1.2vw,14px);padding:0;box-sizing:border-box;background:#11131a}
+ #wrap[hidden]{display:none!important}
+ #c{grid-column:2;grid-row:1;width:min(78dvh,58vw);height:min(78dvh,58vw);max-width:100%;aspect-ratio:1;object-fit:contain;border-radius:5px;touch-action:none;z-index:1}
+ .panels{position:absolute;z-index:2;top:max(5px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(58vw,78dvh);gap:8px;margin:0;pointer-events:none}
+ .panel{padding-right:35px;min-width:0}.name{font-size:11px;margin-bottom:2px}.row{font-size:9px;margin:2px 0}.bar{height:5px}.ring{width:30px;height:30px}.ring::before{inset:4px}.ring span{font-size:8px}
+ .help{display:none!important}
+ .mobile-controls{display:contents;user-select:none;-webkit-user-select:none;touch-action:none}
+ .mobile-joystick-zone{grid-column:1;grid-row:1;width:100%;height:100%;display:flex;align-items:center;justify-content:center;touch-action:none;z-index:3}
+ .joystick{width:clamp(104px,22vw,160px);height:clamp(104px,22vw,160px);position:relative;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22);box-shadow:inset 0 0 18px rgba(0,0,0,.35);touch-action:none}
+ .joystick-ring{position:absolute;inset:22%;border:1px solid rgba(255,255,255,.12);border-radius:50%;pointer-events:none}
+ .joystick-knob{position:absolute;left:50%;top:50%;width:43%;height:43%;border-radius:50%;transform:translate(-50%,-50%);background:linear-gradient(145deg,#dce5f5,#737f98);border:2px solid rgba(255,255,255,.45);box-shadow:0 4px 12px rgba(0,0,0,.4);pointer-events:none}
+ .mobile-action-zone{grid-column:3;grid-row:1;width:100%;height:100%;display:flex;align-items:center;justify-content:center;gap:clamp(8px,2vw,18px);padding:5px;box-sizing:border-box;z-index:3}
+ .mobile-action{width:clamp(62px,13vw,94px);height:clamp(62px,13vw,94px);border-radius:50%;border:2px solid rgba(255,255,255,.4);color:white;font-weight:900;font-size:clamp(14px,2.5vw,20px);letter-spacing:1px;box-shadow:0 5px 12px rgba(0,0,0,.35);touch-action:none;-webkit-tap-highlight-color:transparent}
+ .attack-button{background:linear-gradient(145deg,#ff6a75,#b92142);transform:translateY(16px)}
+ .skill-button{background:linear-gradient(145deg,#ffce58,#dc7b19);transform:translateY(-20px)}
+ .mobile-action.is-pressed{filter:brightness(1.25);scale:.94}
+ #title,#select{width:100vw;height:100dvh;box-sizing:border-box;justify-content:center;gap:10px;padding:16px;overflow:auto}
+ #title{margin:0} .logo{font-size:clamp(30px,8vw,48px);margin-bottom:10px}.sub0{font-size:12px;letter-spacing:3px}.big{padding:12px;width:min(220px,75vw)}
+}
+@media (max-width:900px) and (orientation:portrait){
+ #rotateNotice{display:flex;position:fixed;inset:0;z-index:1000;background:#10121a;color:#fff;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;padding:28px;box-sizing:border-box;font-weight:800}
+ #rotateNotice .rotate-icon{font-size:52px;animation:rotatePhone 1.8s ease-in-out infinite alternate}
+ #title,#select,#wrap{visibility:hidden!important;pointer-events:none!important}
+}
+@keyframes rotatePhone{from{transform:rotate(0deg)}to{transform:rotate(90deg)}}
 </style></head><body>
-<div id="rotateNotice"><div class="rotate-icon">📱 ↻</div><div style="font-size:22px">휴대폰을 가로로 돌려주세요</div></div>
+<div id="rotateNotice"><div class="rotate-icon">📱 ↻</div><div style="font-size:22px">휴대폰을 가로로 돌려주세요</div><div style="font-size:14px;font-weight:500;opacity:.75">가로 화면에서 플레이할 수 있어요</div></div>
 
 <div id="title" class="screen">
   <div class="sub0">강화중 시리즈</div>
@@ -113,7 +141,7 @@ body.shk{animation:shk .4s}
   <div class="row"><span>체력</span><span id="h1t">100</span></div><div class="bar"><div class="fill" id="h1" style="background:#3fb950"></div></div>
   <div class="row"><span>마나</span><span id="m1t">100</span></div><div class="bar"><div class="fill" id="m1" style="background:#4c8dff"></div></div></div>
 </div>
-<div class="help">1P: E(위) S(왼쪽) D(아래) F(오른쪽), 대쉬 = 왼쪽 Shift + 방향키, 베기 = 왼쪽 Ctrl<br>2P: 방향키, 대쉬 = 오른쪽 Shift(안 눌리면 / 키) + 방향키, 베기 = 오른쪽 Ctrl<br>벽에 부딪히면 1.5초 스턴(공격 불가) · 대쉬 마나 10 · 베기 마나 15(마나가 바닥나면 0.8초 스턴) · 15초마다 체력/마나 아이템 등장 · Enter로 재시작<br>박수민·이도훈·김세준·조현우는 Shift = 고유 능력(대쉬 없음), Ctrl = 기본 공격</div>
+<div class="help">방향키 및 조작 · 벽에 부딪히면 1.5초 스턴 · Enter로 재시작</div>
 </div>
 
 <script>
@@ -145,16 +173,19 @@ function initMultiplayerChannel(roomCode, role) {
   gameChannel.subscribe((status) => {
     if (status === 'SUBSCRIBED') {
       if (myRole === 1) {
+        // 2P가 입장했음을 방장에게 알림
         gameChannel.send({ type: 'broadcast', event: 'peer_joined', payload: {} });
       }
     }
   });
 
+  // 상대방 접속 감지 (방장 기준)
   gameChannel.on('broadcast', { event: 'peer_joined' }, () => {
     $('waitingModal').hidden = true;
     startCharSelect();
   });
 
+  // 캐릭터 선택 동기화
   gameChannel.on('broadcast', { event: 'select_sync' }, (payload) => {
     const data = payload.payload;
     sel[data.index] = data.charIndex;
@@ -164,6 +195,7 @@ function initMultiplayerChannel(roomCode, role) {
     }
   });
 
+  // 게임 상태 동기화 (위치, 체력 등)
   gameChannel.on('broadcast', { event: 'player_sync' }, (payload) => {
     const data = payload.payload;
     if (data.role !== myRole && P && P[data.role]) {
@@ -356,6 +388,7 @@ function fx(el,c){el.classList.remove('pop');void el.offsetWidth;el.classList.ad
 
 function choose(i){
  const k=pick;sel[k]=i;prev=null;$('desc').textContent='';pick++;refresh();fx($('half'+k),CH[i].c);
+ // 선택 결과 동기화 전송
  if(gameChannel) {
    gameChannel.send({type:'broadcast', event:'select_sync', payload:{index:k, charIndex:i}});
  }
@@ -370,13 +403,16 @@ $('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1)return;con
 
 function startCount(){[0,1].forEach(i=>{const c=CH[sel[i]];Object.assign(CFG[i],{color:c.c,type:c.type,mh:c.mh,mm:c.mm})});[0,1].forEach(i=>{const n=$('n'+i);n.textContent=CH[sel[i]].n+' ('+(i+1)+'P)';n.style.color=CH[sel[i]].c});show('game');reset();mode='count';let j=0;(function t(){if(j<3){cd=3-j;j++;cdT=0;buzz(400+j*80,.15,'triangle');setTimeout(t,1000)}else{mode='play';buzz(800,.25,'square')}})()}
 
+// 방 만들기 버튼
 $('createRoomBtn').onclick=()=>{
+ try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(_){}
  const roomCode = generateRoomCode();
- initMultiplayerChannel(roomCode, 0);
+ initMultiplayerChannel(roomCode, 0); // 0P(방장)
  $('displayRoomCode').textContent = roomCode;
  $('waitingModal').hidden = false;
 };
 
+// 방 참가 버튼
 $('joinRoomBtn').onclick=()=>{$('joinModal').hidden = false;
  $('roomCodeInput').value = '';
  $('roomMsg').textContent = '';$('roomCodeInput').focus();
@@ -389,7 +425,7 @@ $('joinOk').onclick=()=>{
    $('roomMsg').className = 'bad';
    return;
  }
- initMultiplayerChannel(code, 1);
+ initMultiplayerChannel(code, 1); // 1P(참가자, 2P 역할)
  $('joinModal').hidden = true;
  startCharSelect();
 };
@@ -401,5 +437,30 @@ $('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').te
 function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
 $('pwIn').onkeydown=e=>{if(e.key==='Enter')checkPw();if(e.key==='Escape')$('pw').hidden=true};
 
+// Mobile joystick and two action buttons.
+const mobileHeldCodes=['KeyE','KeyS','KeyD','KeyF'];
+const joystick=$('joystick'),joystickKnob=$('joystickKnob');
+let joyPointer=null;
+function setJoystickFromPoint(e){
+ const r=joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.31,dist=Math.hypot(dx,dy)||1;
+ if(dist>max){dx=dx/dist*max;dy=dy/dist*max}
+ joystickKnob.style.left=`${50+dx/r.width*100}%`;joystickKnob.style.top=`${50+dy/r.height*100}%`;
+ const p=P&&P[myRole];if(!p)return;
+ p.held=p.held.filter(k=>!mobileHeldCodes.includes(k));
+ const nx=dx/max,ny=dy/max;
+ if(nx<-.28)p.held.push('KeyS');if(nx>.28)p.held.push('KeyF');if(ny<-.28)p.held.push('KeyE');if(ny>.28)p.held.push('KeyD');
+ if(p.shift&&p.held.length)tryDash(p);
+}
+function releaseJoystick(){joyPointer=null;if(joystickKnob){joystickKnob.style.left='50%';joystickKnob.style.top='50%'}if(P&&P[myRole])P[myRole].held=P[myRole].held.filter(k=>!mobileHeldCodes.includes(k))}
+joystick.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;try{joystick.setPointerCapture(e.pointerId)}catch(_){}setJoystickFromPoint(e)});
+joystick.addEventListener('pointermove',e=>{if(joyPointer===e.pointerId){e.preventDefault();setJoystickFromPoint(e)}});
+joystick.addEventListener('pointerup',e=>{if(joyPointer===e.pointerId){e.preventDefault();releaseJoystick()}});
+joystick.addEventListener('pointercancel',releaseJoystick);
+joystick.addEventListener('lostpointercapture',releaseJoystick);
+function bindMobileAction(id,fn){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('is-pressed');if(!e.repeat)fn()});const release=e=>{e.preventDefault();b.classList.remove('is-pressed')};b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',()=>b.classList.remove('is-pressed'))}
+bindMobileAction('attackButton',()=>{if(P&&P[myRole])useSkill(P[myRole])});
+bindMobileAction('skillButton',()=>{const p=P&&P[myRole];if(!p||mode!=='play'||over>=0)return;if(p.type==='def'){p.shift=true;tryDash(p);p.shift=false}else shiftAbility(p)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseJoystick()});
 reset();requestAnimationFrame(loop);
 </script></body></html>
