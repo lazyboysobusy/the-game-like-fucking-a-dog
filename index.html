@@ -50,6 +50,43 @@ canvas{width:100%;aspect-ratio:1;display:block;border-radius:6px}
 body.shk{animation:shk .4s}
 @keyframes shk{0%,100%{transform:translate(0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,2px)}}
 .pt{position:fixed;width:10px;height:10px;border-radius:50%;pointer-events:none;z-index:9}
+/* Mobile layout and on-screen two-player controls */
+.touch-controls{display:none;gap:12px;margin-top:14px;grid-template-columns:1fr 1fr;user-select:none;-webkit-user-select:none}
+.touch-player{min-width:0;border:1px solid var(--bar);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.touch-title{font-size:13px;font-weight:800}
+.touch-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,44px);gap:5px;width:100%;max-width:180px}
+.touch-pad button,.touch-action{border:1px solid var(--bar);border-radius:9px;background:var(--bar);color:var(--fg);font-weight:800;font-size:17px;touch-action:none;-webkit-tap-highlight-color:transparent}
+.touch-pad [data-dir="up"]{grid-column:2;grid-row:1}
+.touch-pad [data-dir="left"]{grid-column:1;grid-row:2}
+.touch-pad [data-dir="down"]{grid-column:2;grid-row:2}
+.touch-pad [data-dir="right"]{grid-column:3;grid-row:2}
+.touch-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;width:100%}
+.touch-action{font-size:12px;padding:10px 2px;min-height:42px}
+.touch-controls button.is-pressed{background:#4c8dff;color:white;border-color:#4c8dff;transform:scale(.97)}
+@media(max-width:700px){
+ body{padding:8px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
+ #wrap{width:min(100%,500px)}
+ canvas{width:100%;height:auto;touch-action:none}
+ .panels{gap:8px;margin-top:8px}
+ .panel{padding-right:44px}
+ .ring{width:38px;height:38px}
+ .ring::before{inset:5px}
+ .ring span{font-size:9px}
+ .name{font-size:13px}
+ .help{font-size:11px}
+ .touch-controls{display:grid}
+ #title{margin-top:7vh}
+ .logo{font-size:clamp(34px,10vw,48px)}
+ .screen{width:100%;gap:10px}
+ .half{height:135px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:360px){
+ .touch-player{padding:5px}
+ .touch-pad{grid-template-rows:repeat(2,38px);gap:3px}
+ .touch-action{font-size:11px}
+ .panel{padding-right:38px}
+}
 </style></head><body>
 <div id="title" class="screen"><div class="sub0">강화중 시리즈</div><h1 class="logo">개터진 게임</h1><button class="big" id="startBtn">START</button><button class="big sub" id="adminBtn">Admin</button>
 <div class="modal" id="pw" hidden><div class="box"><b>관리자 비밀번호</b><input id="pwIn" type="password" inputmode="numeric" maxlength="12" autocomplete="off"><div id="pwMsg"></div><button id="pwOk" style="background:#4c8dff;color:#fff">확인</button><button id="pwCancel" style="background:var(--bar);color:var(--fg)">취소</button></div></div></div>
@@ -65,6 +102,28 @@ body.shk{animation:shk .4s}
   <div class="row"><span>마나</span><span id="m1t">100</span></div><div class="bar"><div class="fill" id="m1" style="background:#4c8dff"></div></div></div>
 </div>
 <div class="help">1P: E(위) S(왼쪽) D(아래) F(오른쪽), 대쉬 = 왼쪽 Shift + 방향키, 베기 = 왼쪽 Ctrl<br>2P: 방향키, 대쉬 = 오른쪽 Shift(안 눌리면 / 키) + 방향키, 베기 = 오른쪽 Ctrl<br>벽에 부딪히면 1.5초 스턴(공격 불가) · 대쉬 마나 10 · 베기 마나 15(마나가 바닥나면 0.8초 스턴) · 15초마다 체력/마나 아이템 등장 · Enter로 재시작<br>박수민·이도훈·김세준·조현우는 Shift = 고유 능력(대쉬 없음), Ctrl = 기본 공격</div>
+<div class="touch-controls" id="touchControls" aria-label="모바일 2인 조작">
+ <div class="touch-player">
+  <div class="touch-title" style="color:#4c8dff">1P 조작</div>
+  <div class="touch-pad">
+   <button type="button" data-p="0" data-code="KeyE" data-dir="up" aria-label="1P 위">↑</button>
+   <button type="button" data-p="0" data-code="KeyS" data-dir="left" aria-label="1P 왼쪽">←</button>
+   <button type="button" data-p="0" data-code="KeyD" data-dir="down" aria-label="1P 아래">↓</button>
+   <button type="button" data-p="0" data-code="KeyF" data-dir="right" aria-label="1P 오른쪽">→</button>
+  </div>
+  <div class="touch-actions"><button type="button" class="touch-action" data-p="0" data-action="shift">대쉬 / 능력</button><button type="button" class="touch-action" data-p="0" data-action="skill">공격</button></div>
+ </div>
+ <div class="touch-player">
+  <div class="touch-title" style="color:#ff5a5f">2P 조작</div>
+  <div class="touch-pad">
+   <button type="button" data-p="1" data-code="ArrowUp" data-dir="up" aria-label="2P 위">↑</button>
+   <button type="button" data-p="1" data-code="ArrowLeft" data-dir="left" aria-label="2P 왼쪽">←</button>
+   <button type="button" data-p="1" data-code="ArrowDown" data-dir="down" aria-label="2P 아래">↓</button>
+   <button type="button" data-p="1" data-code="ArrowRight" data-dir="right" aria-label="2P 오른쪽">→</button>
+  </div>
+  <div class="touch-actions"><button type="button" class="touch-action" data-p="1" data-action="shift">대쉬 / 능력</button><button type="button" class="touch-action" data-p="1" data-action="skill">공격</button></div>
+ </div>
+</div>
 </div>
 <script>
 const cv=document.getElementById('c'),g=cv.getContext('2d'),W=500,R=16,BL=46;
@@ -230,5 +289,38 @@ $('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').te
 function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}
 $('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
 $('pwIn').onkeydown=e=>{if(e.key==='Enter')checkPw();if(e.key==='Escape')$('pw').hidden=true};
+
+// Touch controls reuse the same input state and combat functions as the keyboard.
+const touchHeld=new Map();
+function releaseTouchButton(btn){
+ const token=touchHeld.get(btn);if(!token)return;
+ const p=P&&P[token.player];if(p){
+  if(token.code)p.held=p.held.filter(k=>k!==token.code);
+  if(token.action==='shift')p.shift=false;
+ }
+ touchHeld.delete(btn);btn.classList.remove('is-pressed');
+}
+document.querySelectorAll('#touchControls button').forEach(btn=>{
+ btn.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(touchHeld.has(btn))return;
+  const i=Number(btn.dataset.p),p=P&&P[i];if(!p)return;
+  const token={player:i,code:btn.dataset.code||null,action:btn.dataset.action||null};
+  touchHeld.set(btn,token);btn.classList.add('is-pressed');
+  try{btn.setPointerCapture(e.pointerId)}catch(_){}
+  if(token.code){
+   if(!p.held.includes(token.code))p.held.push(token.code);
+   if(p.shift)tryDash(p);
+  }else if(token.action==='shift'){
+   p.shift=true;
+   if(p.type==='def')tryDash(p);else shiftAbility(p);
+  }else if(token.action==='skill')useSkill(p);
+ });
+ const release=e=>{e.preventDefault();releaseTouchButton(btn)};
+ btn.addEventListener('pointerup',release);
+ btn.addEventListener('pointercancel',release);
+ btn.addEventListener('lostpointercapture',()=>releaseTouchButton(btn));
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)document.querySelectorAll('#touchControls button').forEach(releaseTouchButton)});
 reset();requestAnimationFrame(loop);
 </script></body></html>
