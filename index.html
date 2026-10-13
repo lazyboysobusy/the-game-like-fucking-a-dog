@@ -141,6 +141,10 @@ body.shk{animation:shk .4s}
   <div class="row"><span>체력</span><span id="h1t">100</span></div><div class="bar"><div class="fill" id="h1" style="background:#3fb950"></div></div>
   <div class="row"><span>마나</span><span id="m1t">100</span></div><div class="bar"><div class="fill" id="m1" style="background:#4c8dff"></div></div></div>
 </div>
+<div class="mobile-controls">
+ <div class="mobile-joystick-zone"><div class="joystick" id="joystick"><div class="joystick-ring"></div><div class="joystick-knob" id="joystickKnob"></div></div></div>
+ <div class="mobile-action-zone"><button class="mobile-action attack-button" id="attackButton" type="button">공격</button><button class="mobile-action skill-button" id="skillButton" type="button">능력</button></div>
+</div>
 <div class="help">방향키 및 조작 · 벽에 부딪히면 1.5초 스턴 · Enter로 재시작</div>
 </div>
 
@@ -149,7 +153,7 @@ body.shk{animation:shk .4s}
 const SUPABASE_URL = 'https://gfpoxzwjatlmygrxxlwr.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_OCALIbMSvuQZuzBH2zbOeA_6r98IEOH'; 
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient=null;try{supabaseClient=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)}catch(err){console.warn('Supabase 로드 실패',err)}
 let gameChannel = null;
 let currentRoomCode = '';
 let myRole = 0; // 0: 1P(방장), 1: 2P(참가자)
@@ -159,6 +163,7 @@ function generateRoomCode() {
 }
 
 function initMultiplayerChannel(roomCode, role) {
+  if(!supabaseClient){alert('멀티플레이 서버에 연결할 수 없어요');return;}
   currentRoomCode = roomCode;
   myRole = role;
 
@@ -431,7 +436,7 @@ $('joinOk').onclick=()=>{
 };
 
 $('joinCancel').onclick=()=>{$('joinModal').hidden=true;};
-$('waitingCancel').onclick=()=>{$('waitingModal').hidden=true;if(gameChannel)supabaseClient.removeChannel(gameChannel);};
+$('waitingCancel').onclick=()=>{$('waitingModal').hidden=true;if(gameChannel&&supabaseClient)supabaseClient.removeChannel(gameChannel);};
 
 $('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').textContent='';$('pwIn').focus()};
 function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
@@ -453,12 +458,12 @@ function setJoystickFromPoint(e){
  if(p.shift&&p.held.length)tryDash(p);
 }
 function releaseJoystick(){joyPointer=null;if(joystickKnob){joystickKnob.style.left='50%';joystickKnob.style.top='50%'}if(P&&P[myRole])P[myRole].held=P[myRole].held.filter(k=>!mobileHeldCodes.includes(k))}
-joystick.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;try{joystick.setPointerCapture(e.pointerId)}catch(_){}setJoystickFromPoint(e)});
+if(joystick){joystick.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;try{joystick.setPointerCapture(e.pointerId)}catch(_){}setJoystickFromPoint(e)});
 joystick.addEventListener('pointermove',e=>{if(joyPointer===e.pointerId){e.preventDefault();setJoystickFromPoint(e)}});
 joystick.addEventListener('pointerup',e=>{if(joyPointer===e.pointerId){e.preventDefault();releaseJoystick()}});
 joystick.addEventListener('pointercancel',releaseJoystick);
-joystick.addEventListener('lostpointercapture',releaseJoystick);
-function bindMobileAction(id,fn){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('is-pressed');if(!e.repeat)fn()});const release=e=>{e.preventDefault();b.classList.remove('is-pressed')};b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',()=>b.classList.remove('is-pressed'))}
+joystick.addEventListener('lostpointercapture',releaseJoystick);}
+function bindMobileAction(id,fn){const b=$(id);if(!b)return;b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('is-pressed');if(!e.repeat)fn()});const release=e=>{e.preventDefault();b.classList.remove('is-pressed')};b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',()=>b.classList.remove('is-pressed'))}
 bindMobileAction('attackButton',()=>{if(P&&P[myRole])useSkill(P[myRole])});
 bindMobileAction('skillButton',()=>{const p=P&&P[myRole];if(!p||mode!=='play'||over>=0)return;if(p.type==='def'){p.shift=true;tryDash(p);p.shift=false}else shiftAbility(p)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseJoystick()});
