@@ -2,6 +2,8 @@
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>동그라미 대결</title>
+<!-- Supabase SDK 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f4f5f8;--fg:#1c1e26;--mut:#6b7080;--bar:#d9dce6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14151b;--fg:#eceef5;--mut:#9aa0b4;--bar:#2a2d3a}}
@@ -150,6 +152,77 @@ body.shk{animation:shk .4s}
 </div>
 </div>
 <script>
+// ===== SUPABASE 멀티플레이 설정 =====
+const SUPABASE_URL = 'https://gfpoxzwjatlmygrxxlwr.supabase.co'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_OCALIbMSvuQZuzBH2zbOeA_6r98IEOH'; 
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const gameChannel = supabaseClient.channel('circle_battle_room', {
+  config: { broadcast: { ack: true } }
+});
+
+let myRole = 0; // 0번 플레이어(1P) 또는 1번 플레이어(2P) 자동 배정
+gameChannel.subscribe((status) => {
+  if (status === 'SUBSCRIBED') {
+    gameChannel.send({
+      type: 'broadcast',
+      event: 'join_request',
+      payload: {}
+    });
+  }
+});
+
+gameChannel.on('broadcast', { event: 'join_request' }, () => {
+  gameChannel.send({ type: 'broadcast', event: 'join_response', payload: { role: myRole } });
+});
+
+gameChannel.on('broadcast', { event: 'join_response' }, (payload) => {
+  if (payload.payload.role === 0 && myRole === 0) {
+    myRole = 1; 
+  }
+});
+
+// 네트워크로 상대방 상태 수신
+gameChannel.on('broadcast', { event: 'player_sync' }, (payload) => {
+  const data = payload.payload;
+  if (data.role !== myRole && P && P[data.role]) {
+    const opp = P[data.role];
+    opp.x = data.x;
+    opp.y = data.y;
+    opp.vx = data.vx;
+    opp.vy = data.vy;
+    opp.hp = data.hp;
+    opp.mp = data.mp;
+    opp.ang = data.ang;
+    opp.stun = data.stun;
+    opp.dash = data.dash;
+    opp.skill = data.skill;
+  }
+});
+
+function syncMyState() {
+  if (!P || !P[myRole]) return;
+  const p = P[myRole];
+  gameChannel.send({
+    type: 'broadcast',
+    event: 'player_sync',
+    payload: {
+      role: myRole,
+      x: p.x,
+      y: p.y,
+      vx: p.vx,
+      vy: p.vy,
+      hp: p.hp,
+      mp: p.mp,
+      ang: p.ang,
+      stun: p.stun,
+      dash: p.dash,
+      skill: p.skill
+    }
+  });
+}
+// ===================================
+
 const cv=document.getElementById('c'),g=cv.getContext('2d'),W=500,R=16,BL=46;
 const CFG=[
  {color:'#4c8dff',keys:{KeyE:[0,-1],KeyD:[0,1],KeyS:[-1,0],KeyF:[1,0]},shift:'ShiftLeft',skill:'ControlLeft'},
@@ -163,14 +236,15 @@ function tryDash(p){
 }
 addEventListener('keydown',e=>{
  if(e.key==='Enter'&&over>=0&&mode==='play')startCount();
- P.forEach(p=>{
+ P.forEach((p,i)=>{
+  if(i !== myRole) return;
   if(e.code===p.c.shift||e.code===p.c.alt||(e.key==='Shift'&&e.location===(p===P[0]?1:2))){if(e.code===p.c.alt)e.preventDefault();p.shift=true;if(!e.repeat){p.type==='def'?tryDash(p):shiftAbility(p)}}
   if(e.code===p.c.skill){e.preventDefault();if(!e.repeat)useSkill(p)}
   if(p.c.keys[e.code]){e.preventDefault();if(e.repeat)return;if(!p.held.includes(e.code))p.held.push(e.code);if(p.shift)tryDash(p)}
  });
 });
-addEventListener('keyup',e=>{P.forEach(p=>{if(e.code===p.c.shift||e.code===p.c.alt||(e.key==='Shift'&&e.location===(p===P[0]?1:2)))p.shift=false;p.held=p.held.filter(k=>k!==e.code)})});
-addEventListener('blur',()=>P.forEach(p=>{p.held=[];p.shift=false}));
+addEventListener('keyup',e=>{P.forEach((p,i)=>{if(i!==myRole)return;if(e.code===p.c.shift||e.code===p.c.alt||(e.key==='Shift'&&e.location===(p===P[0]?1:2)))p.shift=false;p.held=p.held.filter(k=>k!==e.code)})});
+addEventListener('blur',()=>P.forEach((p,i)=>{if(i===myRole){p.held=[];p.shift=false}}));
 function useSkill(p){if(p.type==='wave')return waveAtk(p);if(p.type==='bam')return bamAtk(p);if(p.type==='whip')return whipAtk(p);if(p.type==='pen')return penAtk(p);if(mode!=='play'||over>=0||p.skill||p.stun>0||p.dash||p.mp<15)return;p.mp-=15;if(p.mp<1)p.exh=true;p.skill={ph:'wind',t:.4};buzz(160,.4,'sine')}
 function bladeHit(p,o){const ax=p.x+Math.cos(p.ang)*R,ay=p.y+Math.sin(p.ang)*R,bx=p.x+Math.cos(p.ang)*(R+BL),by=p.y+Math.sin(p.ang)*(R+BL),vx=bx-ax,vy=by-ay;let t=((o.x-ax)*vx+(o.y-ay)*vy)/(vx*vx+vy*vy);t=Math.max(0,Math.min(1,t));return Math.hypot(o.x-(ax+vx*t),o.y-(ay+vy*t))<R+3}
 function wallHit(p){
@@ -181,26 +255,29 @@ function wallHit(p){
 }
 function update(dt){
  P.forEach((p,i)=>{
-  p.mp=Math.min(p.mm,p.mp+6*dt);p.hit=Math.max(0,p.hit-dt);p.wcd-=dt;p.pcd-=dt;p.slow-=dt;p.hrs-=dt;if(p.dot>0){p.dot-=dt;if(over<0){p.hp=Math.max(0,p.hp-4*dt);if(p.hp<=0)over=1-P.indexOf(p)}}if(p.skill&&p.skill.ph==='wind'){p.skill.t-=dt;if(p.skill.t<=0)p.skill={ph:'slash',rot:0,hit:false}}
-  p.trail.forEach(t=>t.l-=dt);p.trail=p.trail.filter(t=>t.l>0);
-  if(over>=0)return;
-  if(p.dash){
-   const s=1800*dt;p.x+=p.dash.dx*s;p.y+=p.dash.dy*s;p.trail.push({x:p.x,y:p.y,dx:p.dash.dx,dy:p.dash.dy,l:.35});
-   p.dash.t-=dt;if(p.dash.t<=0){p.dash=null;p.rest=.2}
-  }else if(p.stun>0){
-   p.stun-=dt;p.x+=p.kx*dt;p.y+=p.ky*dt;const k=Math.exp(-8*dt);p.kx*=k;p.ky*=k;
-  }else if(p.rest>0){p.rest-=dt}
-  else{
-   let mx=0,my=0;for(const k in p.c.keys)if(p.held.includes(k)){mx+=p.c.keys[k][0];my+=p.c.keys[k][1]}
-   const l=Math.hypot(mx,my);if(l){const sp=p.slow>0?105:210;p.vx=mx/l*sp;p.vy=my/l*sp;p.moving=true}else{if(p.moving){p.vx*=.45;p.vy*=.45;p.moving=false}const f=Math.exp(-1.4*dt);p.vx*=f;p.vy*=f}p.x+=p.vx*dt;p.y+=p.vy*dt
+  if(i === myRole) {
+    p.mp=Math.min(p.mm,p.mp+6*dt);p.hit=Math.max(0,p.hit-dt);p.wcd-=dt;p.pcd-=dt;p.slow-=dt;p.hrs-=dt;if(p.dot>0){p.dot-=dt;if(over<0){p.hp=Math.max(0,p.hp-4*dt);if(p.hp<=0)over=1-P.indexOf(p)}}if(p.skill&&p.skill.ph==='wind'){p.skill.t-=dt;if(p.skill.t<=0)p.skill={ph:'slash',rot:0,hit:false}}
+    p.trail.forEach(t=>t.l-=dt);p.trail=p.trail.filter(t=>t.l>0);
+    if(over<0){
+      if(p.dash){
+       const s=1800*dt;p.x+=p.dash.dx*s;p.y+=p.dash.dy*s;p.trail.push({x:p.x,y:p.y,dx:p.dash.dx,dy:p.dash.dy,l:.35});
+       p.dash.t-=dt;if(p.dash.t<=0){p.dash=null;p.rest=.2}
+      }else if(p.stun>0){
+       p.stun-=dt;p.x+=p.kx*dt;p.y+=p.ky*dt;const k=Math.exp(-8*dt);p.kx*=k;p.ky*=k;
+      }else if(p.rest>0){p.rest-=dt}
+      else{
+       let mx=0,my=0;for(const k in p.c.keys)if(p.held.includes(k)){mx+=p.c.keys[k][0];my+=p.c.keys[k][1]}
+       const l=Math.hypot(mx,my);if(l){const sp=p.slow>0?105:210;p.vx=mx/l*sp;p.vy=my/l*sp;p.moving=true}else{if(p.moving){p.vx*=.45;p.vy*=.45;p.moving=false}const f=Math.exp(-1.4*dt);p.vx*=f;p.vy*=f}p.x+=p.vx*dt;p.y+=p.vy*dt
+      }
+      wallHit(p);
+      if(p.exh&&!p.dash&&!p.skill&&!p.wh&&!(p.ss>0)){p.exh=false;p.stun=.8;p.kx=p.ky=0;buzz(110,.8)}
+      if(p.stun>0){p.x=Math.min(W-R,Math.max(R,p.x));p.y=Math.min(W-R,Math.max(R,p.y))}
+    }
+    syncMyState(); 
   }
-  wallHit(p);
-  if(p.exh&&!p.dash&&!p.skill&&!p.wh&&!(p.ss>0)){p.exh=false;p.stun=.8;p.kx=p.ky=0;buzz(110,.8)}
-  if(p.stun>0){p.x=Math.min(W-R,Math.max(R,p.x));p.y=Math.min(W-R,Math.max(R,p.y))}
  });
  P.forEach((p,i)=>{
   const o=P[1-i];if(p.type!=='def'){other(p,o,i,dt);return}const sl=p.skill&&p.skill.ph==='slash',da=(p.skill?(sl?26:.5):3.2)*dt,n=Math.max(1,Math.ceil(da/.1));for(let s=0;s<n;s++){p.ang+=da/n;if(sl)p.skill.rot+=da/n;if(over>=0||o.dash||o.rest>0||p.stun>0||!bladeHit(p,o))continue;if(sl){if(p.skill.hit)continue;p.skill.hit=true;o.hp=Math.max(0,o.hp-16);o.hit=.5;p.ult=Math.min(100,p.ult+10);o.ult=Math.min(100,o.ult+1);buzz(140,.25,'square');if(o.hp<=0)over=i}else if(o.hit<=0){o.hp=Math.max(0,o.hp-8);o.hit=.5;p.ult=Math.min(100,p.ult+5);o.ult=Math.min(100,o.ult+1);buzz(220,.1,'square');if(o.hp<=0)over=i}}if(sl&&p.skill.rot>=Math.PI*2)p.skill=null;
-  
  });
 }
 function draw(){
@@ -305,13 +382,9 @@ function half(i,ci,done){const h=$('half'+i);h.innerHTML=`<div class="lab">${i+1
 function refresh(){[0,1].forEach(j=>half(j,j===pick&&prev!=null?prev:sel[j],sel[j]!=null));$('hint').textContent=pick>1?'준비 완료!':`${pick+1}P 차례 — 캐릭터를 눌러 확인하고, 한 번 더 눌러 선택하세요`;$('grid').innerHTML=CH.map((c,i)=>{const t=sel[0]===i&&pick===1;return `<button class="card${prev===i?' sel':''}${t?' taken':''}" data-i="${i}" ${t?'disabled':''} style="--c:${c.c}"><span class="dot"></span>${c.n}</button>`}).join('')}
 function fx(el,c){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');document.body.classList.remove('shk');void document.body.offsetWidth;document.body.classList.add('shk');navigator.vibrate&&navigator.vibrate([40,30,60]);buzz(300,.15,'square');buzz(700,.2,'triangle');
  const r=el.getBoundingClientRect();for(let n=0;n<18;n++){const d=document.createElement('b');d.className='pt';d.style.cssText=`left:${r.left+r.width/2}px;top:${r.top+r.height/2}px;background:${c}`;document.documentElement.appendChild(d);const a=Math.PI*2*n/18,s=70+Math.random()*80;d.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(a)*s}px),calc(-50% + ${Math.sin(a)*s}px)) scale(0)`,opacity:0}],{duration:600,easing:'ease-out'}).onfinish=()=>d.remove()}}
-function choose(i){const k=pick;sel[k]=i;prev=null;$('desc').textContent='';pick++;refresh();fx($('half'+k),CH[i].c);if(pick>1)setTimeout(startCount,1100)}
-$('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1)return;const i=+b.dataset.i;if(prev===i)choose(i);else{prev=i;$('desc').innerHTML=`<b style="color:${CH[i].c}">${CH[i].n}</b> — ${CH[i].d}`;refresh();buzz(520,.06,'triangle')}};
-function startCount(){[0,1].forEach(i=>{const c=CH[sel[i]];Object.assign(CFG[i],{color:c.c,type:c.type,mh:c.mh,mm:c.mm})});[0,1].forEach(i=>{const n=$('n'+i);n.textContent=CH[sel[i]].n+' ('+(i+1)+'P)';n.style.color=CH[sel[i]].c});show('game');reset();mode='count';let j=0;(function t(){if(j<3){cd=3-j;j++;cdT=0;buzz(400+j*80,.15,'triangle');setTimeout(t,1000)}else{mode='play';buzz(800,.25,'square')}})()}
-$('startBtn').onclick=()=>{try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(_){}sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select')};
-$('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').textContent='';$('pwIn').focus()};
-function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}
-$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
+function choose(i){const k=pick;sel[k]=i;prev=null;$('desc').textContent='';pick++;refresh();fx($('half'+k),CH[i].c);if(pick>1)setTimeout(startCount,1100)}$('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1)return;const i=+b.dataset.i;if(prev===i)choose(i);else{prev=i;$('desc').innerHTML=`<b style="color:${CH[i].c}">${CH[i].n}</b> — ${CH[i].d}`;refresh();buzz(520,.06,'triangle')}};
+function startCount(){[0,1].forEach(i=>{const c=CH[sel[i]];Object.assign(CFG[i],{color:c.c,type:c.type,mh:c.mh,mm:c.mm})});[0,1].forEach(i=>{const n=$('n'+i);n.textContent=CH[sel[i]].n+' ('+(i+1)+'P)';n.style.color=CH[sel[i]].c});show('game');reset();mode='count';let j=0;(function t(){if(j<3){cd=3-j;j++;cdT=0;buzz(400+j*80,.15,'triangle');setTimeout(t,1000)}else{mode='play';buzz(800,.25,'square')}})()}$('startBtn').onclick=()=>{try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(_){}sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select')};$('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').textContent='';$('pwIn').focus()};
+function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
 $('pwIn').onkeydown=e=>{if(e.key==='Enter')checkPw();if(e.key==='Escape')$('pw').hidden=true};
 
 // Mobile joystick and two action buttons (Player 1).
@@ -323,21 +396,21 @@ function setJoystickFromPoint(e){
  let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.31,dist=Math.hypot(dx,dy)||1;
  if(dist>max){dx=dx/dist*max;dy=dy/dist*max}
  joystickKnob.style.left=`${50+dx/r.width*100}%`;joystickKnob.style.top=`${50+dy/r.height*100}%`;
- const p=P&&P[0];if(!p)return;
+ const p=P&&P[myRole];if(!p)return;
  p.held=p.held.filter(k=>!mobileHeldCodes.includes(k));
  const nx=dx/max,ny=dy/max;
  if(nx<-.28)p.held.push('KeyS');if(nx>.28)p.held.push('KeyF');if(ny<-.28)p.held.push('KeyE');if(ny>.28)p.held.push('KeyD');
  if(p.shift&&p.held.length)tryDash(p);
 }
-function releaseJoystick(){joyPointer=null;if(joystickKnob){joystickKnob.style.left='50%';joystickKnob.style.top='50%'}if(P&&P[0])P[0].held=P[0].held.filter(k=>!mobileHeldCodes.includes(k))}
+function releaseJoystick(){joyPointer=null;if(joystickKnob){joystickKnob.style.left='50%';joystickKnob.style.top='50%'}if(P&&P[myRole])P[myRole].held=P[myRole].held.filter(k=>!mobileHeldCodes.includes(k))}
 joystick.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;try{joystick.setPointerCapture(e.pointerId)}catch(_){}setJoystickFromPoint(e)});
 joystick.addEventListener('pointermove',e=>{if(joyPointer===e.pointerId){e.preventDefault();setJoystickFromPoint(e)}});
 joystick.addEventListener('pointerup',e=>{if(joyPointer===e.pointerId){e.preventDefault();releaseJoystick()}});
 joystick.addEventListener('pointercancel',releaseJoystick);
 joystick.addEventListener('lostpointercapture',releaseJoystick);
 function bindMobileAction(id,fn){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('is-pressed');if(!e.repeat)fn()});const release=e=>{e.preventDefault();b.classList.remove('is-pressed')};b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',()=>b.classList.remove('is-pressed'))}
-bindMobileAction('attackButton',()=>{if(P&&P[0])useSkill(P[0])});
-bindMobileAction('skillButton',()=>{const p=P&&P[0];if(!p||mode!=='play'||over>=0)return;if(p.type==='def'){p.shift=true;tryDash(p);p.shift=false}else shiftAbility(p)});
+bindMobileAction('attackButton',()=>{if(P&&P[myRole])useSkill(P[myRole])});
+bindMobileAction('skillButton',()=>{const p=P&&P[myRole];if(!p||mode!=='play'||over>=0)return;if(p.type==='def'){p.shift=true;tryDash(p);p.shift=false}else shiftAbility(p)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseJoystick()});
 reset();requestAnimationFrame(loop);
 </script></body></html>
