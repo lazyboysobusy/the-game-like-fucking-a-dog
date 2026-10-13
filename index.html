@@ -23,16 +23,16 @@ canvas{width:100%;aspect-ratio:1;display:block;border-radius:6px}
 .ring span{position:relative;font-size:11px;font-weight:700}
 [hidden]{display:none!important}
 .screen{width:min(100%,560px);display:flex;flex-direction:column;align-items:center;gap:14px}
-#title{margin-top:12vh}
+#title{margin-top:10vh}
 .sub0{font-size:16px;letter-spacing:5px;color:var(--mut);font-weight:700;margin-top:6px}
-.logo{font-size:48px;margin:0 0 24px;font-weight:900;text-align:center;line-height:1.1}
-.big{width:220px;padding:16px;font-size:22px;font-weight:800;border:0;border-radius:12px;background:#4c8dff;color:#fff;cursor:pointer;letter-spacing:3px;transition:transform .1s}
+.logo{font-size:48px;margin:0 0 20px;font-weight:900;text-align:center;line-height:1.1}
+.big{width:240px;padding:14px;font-size:20px;font-weight:800;border:0;border-radius:12px;background:#4c8dff;color:#fff;cursor:pointer;letter-spacing:2px;transition:transform .1s}
 .big:hover{transform:scale(1.04)}.big.sub{background:var(--bar);color:var(--fg);font-size:16px;padding:12px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:10}
-.box{background:var(--bg);padding:22px;border-radius:12px;display:flex;flex-direction:column;gap:10px;width:min(86vw,300px)}
-.box input{font-size:20px;padding:10px;text-align:center;letter-spacing:6px;border:1px solid var(--bar);border-radius:8px;background:transparent;color:var(--fg)}
-.box button{padding:10px;border:0;border-radius:8px;cursor:pointer;font-weight:700}
-#pwMsg{min-height:18px;font-size:13px;text-align:center}.ok{color:#3fb950}.bad{color:#ff5a5f}
+.box{background:var(--bg);padding:22px;border-radius:12px;display:flex;flex-direction:column;gap:12px;width:min(86vw,320px);text-align:center}
+.box input{font-size:22px;padding:10px;text-align:center;letter-spacing:6px;border:1px solid var(--bar);border-radius:8px;background:transparent;color:var(--fg);font-weight:bold}
+.box button{padding:10px;border:0;border-radius:8px;cursor:pointer;font-weight:700;font-size:16px}
+#roomMsg{min-height:18px;font-size:13px}.ok{color:#3fb950}.bad{color:#ff5a5f}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
 .half{height:170px;border:2px solid var(--bar);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative}
 .half.on{border-color:#4c8dff}.half.done{border-color:#3fb950}
@@ -45,58 +45,28 @@ canvas{width:100%;aspect-ratio:1;display:block;border-radius:6px}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
 .card{padding:14px 4px;border:2px solid var(--bar);border-radius:10px;background:transparent;color:var(--fg);cursor:pointer;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:8px}
 .card .dot{width:26px;height:26px;border-radius:50%;background:var(--c)}
-.card.sel{border-color:var(--c);box-shadow:0 0 12px var(--c)}.card.taken{opacity:.35;cursor:not-allowed}
+.card.sel{border-color:#4c8dff;box-shadow:0 0 12px var(--c)}.card.taken{opacity:.35;cursor:not-allowed}
 .hint{font-size:13px;color:var(--mut)}
 .pop{animation:pop .5s}
 @keyframes pop{0%{transform:scale(1)}20%{transform:scale(1.12) rotate(-3deg);box-shadow:0 0 30px #fff}40%{transform:translateX(-6px)}60%{transform:translateX(6px)}80%{transform:translateX(-3px)}100%{transform:scale(1)}}
 body.shk{animation:shk .4s}
 @keyframes shk{0%,100%{transform:translate(0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,2px)}}
 .pt{position:fixed;width:10px;height:10px;border-radius:50%;pointer-events:none;z-index:9}
-/* Mobile layout and on-screen two-player controls */
+
+/* 모바일 및 가로모드 스타일 유지 */
 .touch-controls{display:none;gap:12px;margin-top:14px;grid-template-columns:1fr 1fr;user-select:none;-webkit-user-select:none}
 .touch-player{min-width:0;border:1px solid var(--bar);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .touch-title{font-size:13px;font-weight:800}
 .touch-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,44px);gap:5px;width:100%;max-width:180px}
 .touch-pad button,.touch-action{border:1px solid var(--bar);border-radius:9px;background:var(--bar);color:var(--fg);font-weight:800;font-size:17px;touch-action:none;-webkit-tap-highlight-color:transparent}
-.touch-pad [data-dir="up"]{grid-column:2;grid-row:1}
-.touch-pad [data-dir="left"]{grid-column:1;grid-row:2}
-.touch-pad [data-dir="down"]{grid-column:2;grid-row:2}
-.touch-pad [data-dir="right"]{grid-column:3;grid-row:2}
-.touch-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;width:100%}
-.touch-action{font-size:12px;padding:10px 2px;min-height:42px}
 .touch-controls button.is-pressed{background:#4c8dff;color:white;border-color:#4c8dff;transform:scale(.97)}
-@media(max-width:700px){
- body{padding:8px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
- #wrap{width:min(100%,500px)}
- canvas{width:100%;height:auto;touch-action:none}
- .panels{gap:8px;margin-top:8px}
- .panel{padding-right:44px}
- .ring{width:38px;height:38px}
- .ring::before{inset:5px}
- .ring span{font-size:9px}
- .name{font-size:13px}
- .help{font-size:11px}
- .touch-controls{display:grid}
- #title{margin-top:7vh}
- .logo{font-size:clamp(34px,10vw,48px)}
- .screen{width:100%;gap:10px}
- .half{height:135px}
- .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:360px){
- .touch-player{padding:5px}
- .touch-pad{grid-template-rows:repeat(2,38px);gap:3px}
- .touch-action{font-size:11px}
- .panel{padding-right:38px}
-}
-
-/* Mobile landscape battle layout: square arena centered, joystick left, actions right */
+@media(max-width:700px){body{padding:8px} #wrap{width:min(100%,500px)} canvas{width:100%;height:auto;touch-action:none} .touch-controls{display:grid}}
 .mobile-controls{display:none}
 #rotateNotice{display:none}
 @media (max-width:900px){
  html,body{width:100%;height:100%;min-height:100%;overflow:hidden}
  body{padding:0;display:block;overscroll-behavior:none}
- #wrap{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;margin:0;display:grid;grid-template-columns:minmax(92px,1fr) min(78dvh,58vw) minmax(92px,1fr);grid-template-rows:1fr;align-items:center;justify-items:center;gap:clamp(4px,1.2vw,14px);padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);box-sizing:border-box;background:#11131a}
+ #wrap{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;margin:0;display:grid;grid-template-columns:minmax(92px,1fr) min(78dvh,58vw) minmax(92px,1fr);grid-template-rows:1fr;align-items:center;justify-items:center;gap:clamp(4px,1.2vw,14px);padding:0;box-sizing:border-box;background:#11131a}
  #wrap[hidden]{display:none!important}
  #c{grid-column:2;grid-row:1;width:min(78dvh,58vw);height:min(78dvh,58vw);max-width:100%;aspect-ratio:1;object-fit:contain;border-radius:5px;touch-action:none;z-index:1}
  .panels{position:absolute;z-index:2;top:max(5px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(58vw,78dvh);gap:8px;margin:0;pointer-events:none}
@@ -114,7 +84,6 @@ body.shk{animation:shk .4s}
  .mobile-action.is-pressed{filter:brightness(1.25);scale:.94}
  #title,#select{width:100vw;height:100dvh;box-sizing:border-box;justify-content:center;gap:10px;padding:16px;overflow:auto}
  #title{margin:0} .logo{font-size:clamp(30px,8vw,48px);margin-bottom:10px}.sub0{font-size:12px;letter-spacing:3px}.big{padding:12px;width:min(220px,75vw)}
- .split{max-width:600px}.half{height:clamp(95px,22dvh,140px)}.grid{max-width:600px}.desc{font-size:12px;min-height:28px}
 }
 @media (max-width:900px) and (orientation:portrait){
  #rotateNotice{display:flex;position:fixed;inset:0;z-index:1000;background:#10121a;color:#fff;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;padding:28px;box-sizing:border-box;font-weight:800}
@@ -122,12 +91,46 @@ body.shk{animation:shk .4s}
  #title,#select,#wrap{visibility:hidden!important;pointer-events:none!important}
 }
 @keyframes rotatePhone{from{transform:rotate(0deg)}to{transform:rotate(90deg)}}
-
 </style></head><body>
 <div id="rotateNotice"><div class="rotate-icon">📱 ↻</div><div style="font-size:22px">휴대폰을 가로로 돌려주세요</div><div style="font-size:14px;font-weight:500;opacity:.75">가로 화면에서 플레이할 수 있어요</div></div>
-<div id="title" class="screen"><div class="sub0">강화중 시리즈</div><h1 class="logo">개터진 게임</h1><button class="big" id="startBtn">START</button><button class="big sub" id="adminBtn">Admin</button>
-<div class="modal" id="pw" hidden><div class="box"><b>관리자 비밀번호</b><input id="pwIn" type="password" inputmode="numeric" maxlength="12" autocomplete="off"><div id="pwMsg"></div><button id="pwOk" style="background:#4c8dff;color:#fff">확인</button><button id="pwCancel" style="background:var(--bar);color:var(--fg)">취소</button></div></div></div>
+
+<div id="title" class="screen">
+  <div class="sub0">강화중 시리즈</div>
+  <h1 class="logo">개터진 게임</h1>
+  <button class="big" id="createRoomBtn">방 만들기 (1P)</button>
+  <button class="big sub" id="joinRoomBtn">방 코드로 참가 (2P)</button>
+  <button class="big sub" id="adminBtn" style="margin-top:10px">Admin</button>
+</div>
+
+<!-- 방 코드 입력 모달 -->
+<div class="modal" id="joinModal" hidden>
+  <div class="box">
+    <b>방 코드 입력</b>
+    <div style="font-size:12px;color:var(--mut)">친구에게 받은 6자리 코드를 입력하세요</div>
+    <input id="roomCodeInput" type="text" maxlength="6" autocomplete="off" placeholder="ABC123류">
+    <div id="roomMsg"></div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button id="joinOk" style="background:#4c8dff;color:#fff;flex:1">입장</button>
+      <button id="joinCancel" style="background:var(--bar);color:var(--fg);flex:1">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 대기실/방번호 안내 모달 -->
+<div class="modal" id="waitingModal" hidden>
+  <div class="box">
+    <b>멀티플레이 방 생성 완료!</b>
+    <div style="font-size:14px;margin:6px 0">방 코드: <span id="displayRoomCode" style="font-size:24px;color:#4c8dff;font-weight:bold;letter-spacing:3px"></span></div>
+    <div style="font-size:12px;color:var(--mut)">이 코드를 친구에게 알려주세요.<br>친구가 코드를 입력하면 게임이 시작됩니다!</div>
+    <div id="waitingStatus" style="font-weight:bold;color:#ffb020;margin:10px 0">친구 접속 대기 중...</div>
+    <button id="waitingCancel" style="background:var(--bar);color:var(--fg)">취소</button>
+  </div>
+</div>
+
+<div class="modal" id="pw" hidden><div class="box"><b>관리자 비밀번호</b><input id="pwIn" type="password" inputmode="numeric" maxlength="12" autocomplete="off"><div id="pwMsg"></div><button id="pwOk" style="background:#4c8dff;color:#fff">확인</button><button id="pwCancel" style="background:var(--bar);color:var(--fg)">취소</button></div></div>
+
 <div id="select" class="screen" hidden><div class="split"><div class="half" id="half0"></div><div class="half" id="half1"></div></div><div class="desc" id="desc"></div><div class="grid" id="grid"></div><div class="hint" id="hint"></div></div>
+
 <div id="wrap" hidden>
 <canvas id="c" width="500" height="500"></canvas>
 <div class="panels">
@@ -138,86 +141,87 @@ body.shk{animation:shk .4s}
   <div class="row"><span>체력</span><span id="h1t">100</span></div><div class="bar"><div class="fill" id="h1" style="background:#3fb950"></div></div>
   <div class="row"><span>마나</span><span id="m1t">100</span></div><div class="bar"><div class="fill" id="m1" style="background:#4c8dff"></div></div></div>
 </div>
-<div class="help">1P: E(위) S(왼쪽) D(아래) F(오른쪽), 대쉬 = 왼쪽 Shift + 방향키, 베기 = 왼쪽 Ctrl<br>2P: 방향키, 대쉬 = 오른쪽 Shift(안 눌리면 / 키) + 방향키, 베기 = 오른쪽 Ctrl<br>벽에 부딪히면 1.5초 스턴(공격 불가) · 대쉬 마나 10 · 베기 마나 15(마나가 바닥나면 0.8초 스턴) · 15초마다 체력/마나 아이템 등장 · Enter로 재시작<br>박수민·이도훈·김세준·조현우는 Shift = 고유 능력(대쉬 없음), Ctrl = 기본 공격</div>
-<div class="mobile-controls" id="mobileControls" aria-label="모바일 조작">
- <div class="mobile-joystick-zone">
-  <div class="joystick" id="joystick" aria-label="이동 조이스틱">
-   <div class="joystick-ring"></div><div class="joystick-knob" id="joystickKnob"></div>
-  </div>
- </div>
- <div class="mobile-action-zone">
-  <button type="button" class="mobile-action attack-button" id="attackButton" aria-label="공격">공격</button>
-  <button type="button" class="mobile-action skill-button" id="skillButton" aria-label="스킬">스킬</button>
- </div>
+<div class="help">방향키 및 조작 · 벽에 부딪히면 1.5초 스턴 · Enter로 재시작</div>
 </div>
-</div>
+
 <script>
-// ===== SUPABASE 멀티플레이 설정 =====
+// ===== SUPABASE 방 코드 멀티플레이 설정 =====
 const SUPABASE_URL = 'https://gfpoxzwjatlmygrxxlwr.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_OCALIbMSvuQZuzBH2zbOeA_6r98IEOH'; 
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const gameChannel = supabaseClient.channel('circle_battle_room', {
-  config: { broadcast: { ack: true } }
-});
+let gameChannel = null;
+let currentRoomCode = '';
+let myRole = 0; // 0: 1P(방장), 1: 2P(참가자)
 
-let myRole = 0; // 0번 플레이어(1P) 또는 1번 플레이어(2P) 자동 배정
-gameChannel.subscribe((status) => {
-  if (status === 'SUBSCRIBED') {
-    gameChannel.send({
-      type: 'broadcast',
-      event: 'join_request',
-      payload: {}
-    });
+function generateRoomCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function initMultiplayerChannel(roomCode, role) {
+  currentRoomCode = roomCode;
+  myRole = role;
+
+  if (gameChannel) {
+    supabaseClient.removeChannel(gameChannel);
   }
-});
 
-gameChannel.on('broadcast', { event: 'join_request' }, () => {
-  gameChannel.send({ type: 'broadcast', event: 'join_response', payload: { role: myRole } });
-});
+  gameChannel = supabaseClient.channel('room_' + roomCode, {
+    config: { broadcast: { ack: true } }
+  });
 
-gameChannel.on('broadcast', { event: 'join_response' }, (payload) => {
-  if (payload.payload.role === 0 && myRole === 0) {
-    myRole = 1; 
-  }
-});
+  gameChannel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      if (myRole === 1) {
+        // 2P가 입장했음을 방장에게 알림
+        gameChannel.send({ type: 'broadcast', event: 'peer_joined', payload: {} });
+      }
+    }
+  });
 
-// 네트워크로 상대방 상태 수신
-gameChannel.on('broadcast', { event: 'player_sync' }, (payload) => {
-  const data = payload.payload;
-  if (data.role !== myRole && P && P[data.role]) {
-    const opp = P[data.role];
-    opp.x = data.x;
-    opp.y = data.y;
-    opp.vx = data.vx;
-    opp.vy = data.vy;
-    opp.hp = data.hp;
-    opp.mp = data.mp;
-    opp.ang = data.ang;
-    opp.stun = data.stun;
-    opp.dash = data.dash;
-    opp.skill = data.skill;
-  }
-});
+  // 상대방 접속 감지 (방장 기준)
+  gameChannel.on('broadcast', { event: 'peer_joined' }, () => {
+    $('waitingModal').hidden = true;
+    startCharSelect();
+  });
+
+  // 캐릭터 선택 동기화
+  gameChannel.on('broadcast', { event: 'select_sync' }, (payload) => {
+    const data = payload.payload;
+    sel[data.index] = data.charIndex;
+    refresh();
+    if(sel[0] !== null && sel[1] !== null) {
+      setTimeout(startCount, 1100);
+    }
+  });
+
+  // 게임 상태 동기화 (위치, 체력 등)
+  gameChannel.on('broadcast', { event: 'player_sync' }, (payload) => {
+    const data = payload.payload;
+    if (data.role !== myRole && P && P[data.role]) {
+      const opp = P[data.role];
+      opp.x = data.x;
+      opp.y = data.y;
+      opp.vx = data.vx;
+      opp.vy = data.vy;
+      opp.hp = data.hp;
+      opp.mp = data.mp;
+      opp.ang = data.ang;
+      opp.stun = data.stun;
+      opp.dash = data.dash;
+      opp.skill = data.skill;
+    }
+  });
+}
 
 function syncMyState() {
-  if (!P || !P[myRole]) return;
+  if (!gameChannel || !P || !P[myRole]) return;
   const p = P[myRole];
   gameChannel.send({
     type: 'broadcast',
     event: 'player_sync',
     payload: {
-      role: myRole,
-      x: p.x,
-      y: p.y,
-      vx: p.vx,
-      vy: p.vy,
-      hp: p.hp,
-      mp: p.mp,
-      ang: p.ang,
-      stun: p.stun,
-      dash: p.dash,
-      skill: p.skill
+      role: myRole, x: p.x, y: p.y, vx: p.vx, vy: p.vy, hp: p.hp, mp: p.mp, ang: p.ang, stun: p.stun, dash: p.dash, skill: p.skill
     }
   });
 }
@@ -314,7 +318,6 @@ function draw(){
 const WR=120,COST={whip:25,pen:30,wave:30,bam:30},opp=p=>P[0]===p?P[1]:P[0],cap=v=>Math.min(100,v);
 function whipAtk(p){if(mode!=='play'||over>=0||p.stun>0||p.wh||p.wcd>0||p.mp<10)return;const o=opp(p),dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy);if(d>WR+R)return;p.mp-=10;if(p.mp<1)p.exh=true;p.ang=Math.atan2(dy,dx);
  const ch=p.chg;p.chg=false;p.wh={t:.15,a:p.ang,ch,len:d};buzz(260,.1,'sawtooth');
- 
  if(!o.dash&&o.rest<=0){o.hp=Math.max(0,o.hp-9);o.hit=.3;p.ult=cap(p.ult+(ch?10:5));o.ult=cap(o.ult+1);
   if(ch){o.stun=1.2;o.kx=o.ky=0;o.dash=null;o.skill=null;o.wh=null;buzz(110,1.2)}buzz(200,.15,'square');if(o.hp<=0)over=P.indexOf(p)}}
 function penAtk(p){if(mode!=='play'||over>=0||p.stun>0||p.pcd>0||p.mp<10)return;p.mp-=10;if(p.mp<1)p.exh=true;p.pcd=.5;
@@ -382,12 +385,59 @@ function half(i,ci,done){const h=$('half'+i);h.innerHTML=`<div class="lab">${i+1
 function refresh(){[0,1].forEach(j=>half(j,j===pick&&prev!=null?prev:sel[j],sel[j]!=null));$('hint').textContent=pick>1?'준비 완료!':`${pick+1}P 차례 — 캐릭터를 눌러 확인하고, 한 번 더 눌러 선택하세요`;$('grid').innerHTML=CH.map((c,i)=>{const t=sel[0]===i&&pick===1;return `<button class="card${prev===i?' sel':''}${t?' taken':''}" data-i="${i}" ${t?'disabled':''} style="--c:${c.c}"><span class="dot"></span>${c.n}</button>`}).join('')}
 function fx(el,c){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');document.body.classList.remove('shk');void document.body.offsetWidth;document.body.classList.add('shk');navigator.vibrate&&navigator.vibrate([40,30,60]);buzz(300,.15,'square');buzz(700,.2,'triangle');
  const r=el.getBoundingClientRect();for(let n=0;n<18;n++){const d=document.createElement('b');d.className='pt';d.style.cssText=`left:${r.left+r.width/2}px;top:${r.top+r.height/2}px;background:${c}`;document.documentElement.appendChild(d);const a=Math.PI*2*n/18,s=70+Math.random()*80;d.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(a)*s}px),calc(-50% + ${Math.sin(a)*s}px)) scale(0)`,opacity:0}],{duration:600,easing:'ease-out'}).onfinish=()=>d.remove()}}
-function choose(i){const k=pick;sel[k]=i;prev=null;$('desc').textContent='';pick++;refresh();fx($('half'+k),CH[i].c);if(pick>1)setTimeout(startCount,1100)}$('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1)return;const i=+b.dataset.i;if(prev===i)choose(i);else{prev=i;$('desc').innerHTML=`<b style="color:${CH[i].c}">${CH[i].n}</b> — ${CH[i].d}`;refresh();buzz(520,.06,'triangle')}};
-function startCount(){[0,1].forEach(i=>{const c=CH[sel[i]];Object.assign(CFG[i],{color:c.c,type:c.type,mh:c.mh,mm:c.mm})});[0,1].forEach(i=>{const n=$('n'+i);n.textContent=CH[sel[i]].n+' ('+(i+1)+'P)';n.style.color=CH[sel[i]].c});show('game');reset();mode='count';let j=0;(function t(){if(j<3){cd=3-j;j++;cdT=0;buzz(400+j*80,.15,'triangle');setTimeout(t,1000)}else{mode='play';buzz(800,.25,'square')}})()}$('startBtn').onclick=()=>{try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(_){}sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select')};$('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').textContent='';$('pwIn').focus()};
+
+function choose(i){
+ const k=pick;sel[k]=i;prev=null;$('desc').textContent='';pick++;refresh();fx($('half'+k),CH[i].c);
+ // 선택 결과 동기화 전송
+ if(gameChannel) {
+   gameChannel.send({type:'broadcast', event:'select_sync', payload:{index:k, charIndex:i}});
+ }
+ if(pick>1)setTimeout(startCount,1100);
+}
+
+function startCharSelect(){
+ sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select');
+}
+
+$('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1)return;const i=+b.dataset.i;if(prev===i)choose(i);else{prev=i;$('desc').innerHTML=`<b style="color:${CH[i].c}">${CH[i].n}</b> — ${CH[i].d}`;refresh();buzz(520,.06,'triangle')}};
+
+function startCount(){[0,1].forEach(i=>{const c=CH[sel[i]];Object.assign(CFG[i],{color:c.c,type:c.type,mh:c.mh,mm:c.mm})});[0,1].forEach(i=>{const n=$('n'+i);n.textContent=CH[sel[i]].n+' ('+(i+1)+'P)';n.style.color=CH[sel[i]].c});show('game');reset();mode='count';let j=0;(function t(){if(j<3){cd=3-j;j++;cdT=0;buzz(400+j*80,.15,'triangle');setTimeout(t,1000)}else{mode='play';buzz(800,.25,'square')}})()}
+
+// 방 만들기 버튼
+$('createRoomBtn').onclick=()=>{
+ try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(_){}
+ const roomCode = generateRoomCode();
+ initMultiplayerChannel(roomCode, 0); // 0P(방장)
+ $('displayRoomCode').textContent = roomCode;
+ $('waitingModal').hidden = false;
+};
+
+// 방 참가 버튼
+$('joinRoomBtn').onclick=()=>{$('joinModal').hidden = false;
+ $('roomCodeInput').value = '';
+ $('roomMsg').textContent = '';$('roomCodeInput').focus();
+};
+
+$('joinOk').onclick=()=>{
+ const code = $('roomCodeInput').value.trim().toUpperCase();
+ if(code.length !== 6) {
+   $('roomMsg').textContent = '6자리 코드를 정확히 입력해주세요';
+   $('roomMsg').className = 'bad';
+   return;
+ }
+ initMultiplayerChannel(code, 1); // 1P(참가자, 2P 역할)
+ $('joinModal').hidden = true;
+ startCharSelect();
+};
+
+$('joinCancel').onclick=()=>{$('joinModal').hidden=true;};
+$('waitingCancel').onclick=()=>{$('waitingModal').hidden=true;if(gameChannel)supabaseClient.removeChannel(gameChannel);};
+
+$('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').textContent='';$('pwIn').focus()};
 function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
 $('pwIn').onkeydown=e=>{if(e.key==='Enter')checkPw();if(e.key==='Escape')$('pw').hidden=true};
 
-// Mobile joystick and two action buttons (Player 1).
+// Mobile joystick and two action buttons.
 const mobileHeldCodes=['KeyE','KeyS','KeyD','KeyF'];
 const joystick=$('joystick'),joystickKnob=$('joystickKnob');
 let joyPointer=null;
