@@ -153,8 +153,10 @@ body.shk{animation:shk .4s}
 const SUPABASE_URL = 'https://gfpoxzwjatlmygrxxlwr.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_OCALIbMSvuQZuzBH2zbOeA_6r98IEOH'; 
 
-let supabaseClient=null;try{supabaseClient=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)}catch(err){console.warn('Supabase 로드 실패',err)}
-let gameChannel = null;
+let supabaseClient=null;try{supabaseClient=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{realtime:{params:{eventsPerSecond:40}}})}catch(err){console.warn('Supabase 로드 실패',err)}
+let gameChannel = null;let syncT=0,REMOTE=false,SEED=null,LASTSEED=0;
+function sendEv(event,payload){if(gameChannel)gameChannel.send({type:'broadcast',event,payload})}
+function rnd(q){q.rs=((q.rs||1)*9301+49297)%233280;return q.rs/233280}
 let currentRoomCode = '';
 let myRole = 0; // 0: 1P(방장), 1: 2P(참가자)
 
@@ -172,7 +174,7 @@ function initMultiplayerChannel(roomCode, role) {
   }
 
   gameChannel = supabaseClient.channel('room_' + roomCode, {
-    config: { broadcast: { ack: true } }
+    config: { broadcast: { ack: false, self: false } }
   });
 
   gameChannel.subscribe((status) => {
@@ -193,20 +195,39 @@ function initMultiplayerChannel(roomCode, role) {
   // 캐릭터 선택 동기화
   gameChannel.on('broadcast', { event: 'select_sync' }, (payload) => {
     const data = payload.payload;
-    sel[data.index] = data.charIndex;
+    sel[data.index] = data.charIndex;pick=(sel[0]!==null?1:0)+(sel[1]!==null?1:0);prev=null;
     refresh();
     if(sel[0] !== null && sel[1] !== null) {
       setTimeout(startCount, 1100);
     }
   });
 
+  // 상대 행동(공격/능력) 재현: 공격 이펙트를 양쪽 화면에서 보이게 함
+  gameChannel.on('broadcast', { event: 'act' }, (payload) => {
+    const d = payload.payload;
+    if (mode !== 'play' || d.role === myRole) return;
+    const p = P[d.role]; if (!p) return;
+    const sv = { mp: p.mp, stun: p.stun };
+    p.mp = 999; p.stun = 0; p.pcd = p.wcd = p.hrs = 0;
+    if (d.k === 'shift') { p.chg = false; p.ss = 0; }
+    REMOTE = true; SEED = d.seed == null ? null : d.seed;
+    try { (d.k === 'skill' ? _useSkill : _shiftAbility)(p); } catch (err) { console.warn(err); }
+    REMOTE = false; SEED = null; p.mp = sv.mp; p.stun = sv.stun; p.exh = false;
+  });
+  gameChannel.on('broadcast', { event: 'ko' }, (payload) => { if (mode === 'play' && over < 0) over = 1 - payload.payload.loser; });
+  gameChannel.on('broadcast', { event: 'restart' }, () => { if (mode === 'play' && over >= 0) startCount(); });
+  gameChannel.on('broadcast', { event: 'item_spawn' }, (payload) => { items = payload.payload.items; });
+  gameChannel.on('broadcast', { event: 'item_take' }, (payload) => { delete items[payload.payload.k]; });
+
   // 게임 상태 동기화 (위치, 체력 등)
   gameChannel.on('broadcast', { event: 'player_sync' }, (payload) => {
     const data = payload.payload;
     if (data.role !== myRole && P && P[data.role]) {
       const opp = P[data.role];
-      opp.x = data.x;
-      opp.y = data.y;
+      opp.tx = data.x;
+      opp.ty = data.y;
+      if (opp.rx == null) { opp.x = data.x; opp.y = data.y; opp.rx = 1; }
+      opp.dot = data.dot; opp.hit = data.hit;
       opp.vx = data.vx;
       opp.vy = data.vy;
       opp.hp = data.hp;
@@ -215,6 +236,8 @@ function initMultiplayerChannel(roomCode, role) {
       opp.stun = data.stun;
       opp.dash = data.dash;
       opp.skill = data.skill;
+      opp.ult = data.ult;
+      if (data.hp <= 0 && mode === 'play' && over < 0) over = 1 - data.role;
     }
   });
 }
@@ -226,7 +249,7 @@ function syncMyState() {
     type: 'broadcast',
     event: 'player_sync',
     payload: {
-      role: myRole, x: p.x, y: p.y, vx: p.vx, vy: p.vy, hp: p.hp, mp: p.mp, ang: p.ang, stun: p.stun, dash: p.dash, skill: p.skill
+      role: myRole, x: p.x, y: p.y, vx: p.vx, vy: p.vy, hp: p.hp, mp: p.mp, ang: p.ang, stun: p.stun, dash: p.dash, skill: p.skill, ult: p.ult, dot: p.dot, hit: p.hit
     }
   });
 }
@@ -244,7 +267,7 @@ function tryDash(p){
  const d=p.c.keys[p.held[0]];p.mp-=10;if(p.mp<1)p.exh=true;p.dash={t:.07,dx:d[0],dy:d[1]};p.vx=p.vy=0;buzz(500,.12,'triangle');
 }
 addEventListener('keydown',e=>{
- if(e.key==='Enter'&&over>=0&&mode==='play')startCount();
+ if(e.key==='Enter'&&over>=0&&mode==='play'){sendEv('restart',{});startCount()}
  P.forEach((p,i)=>{
   if(i !== myRole) return;
   if(e.code===p.c.shift||e.code===p.c.alt||(e.key==='Shift'&&e.location===(p===P[0]?1:2))){if(e.code===p.c.alt)e.preventDefault();p.shift=true;if(!e.repeat){p.type==='def'?tryDash(p):shiftAbility(p)}}
@@ -282,7 +305,7 @@ function update(dt){
       if(p.exh&&!p.dash&&!p.skill&&!p.wh&&!(p.ss>0)){p.exh=false;p.stun=.8;p.kx=p.ky=0;buzz(110,.8)}
       if(p.stun>0){p.x=Math.min(W-R,Math.max(R,p.x));p.y=Math.min(W-R,Math.max(R,p.y))}
     }
-    syncMyState(); 
+    if((syncT+=dt)>=.05){syncT=0;syncMyState()} 
   }
  });
  P.forEach((p,i)=>{
@@ -321,10 +344,10 @@ function draw(){
  });
 }
 const WR=120,COST={whip:25,pen:30,wave:30,bam:30},opp=p=>P[0]===p?P[1]:P[0],cap=v=>Math.min(100,v);
-function whipAtk(p){if(mode!=='play'||over>=0||p.stun>0||p.wh||p.wcd>0||p.mp<10)return;const o=opp(p),dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy);if(d>WR+R)return;p.mp-=10;if(p.mp<1)p.exh=true;p.ang=Math.atan2(dy,dx);
+function whipAtk(p){if(mode!=='play'||over>=0||p.stun>0||p.wh||p.wcd>0||p.mp<10)return;const o=opp(p),dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy);if(d>WR+R+(REMOTE?30:0))return;p.mp-=10;if(p.mp<1)p.exh=true;p.ang=Math.atan2(dy,dx);
  const ch=p.chg;p.chg=false;p.wh={t:.15,a:p.ang,ch,len:d};buzz(260,.1,'sawtooth');
  if(!o.dash&&o.rest<=0){o.hp=Math.max(0,o.hp-9);o.hit=.3;p.ult=cap(p.ult+(ch?10:5));o.ult=cap(o.ult+1);
-  if(ch){o.stun=1.2;o.kx=o.ky=0;o.dash=null;o.skill=null;o.wh=null;buzz(110,1.2)}buzz(200,.15,'square');if(o.hp<=0)over=P.indexOf(p)}}
+  if(ch){o.stun=1.2;o.kx=o.ky=0;o.dash=null;o.skill=null;o.wh=null;buzz(110,1.2)}buzz(200,.15,'square');0}}
 function penAtk(p){if(mode!=='play'||over>=0||p.stun>0||p.pcd>0||p.mp<10)return;p.mp-=10;if(p.mp<1)p.exh=true;p.pcd=.5;
  const o=opp(p),dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy)||1;
  pn.push({o:p,x:p.x+dx/d*R,y:p.y+dy/d*R,dx:dx/d,dy:dy/d,s:560,sh:false,dmg:3+14*Math.min(1,d/600),stk:-1,b:0});buzz(600,.08,'triangle')}
@@ -333,8 +356,8 @@ function shiftAbility(p){if(mode!=='play'||over>=0||p.stun>0)return;const cost=C
  else if(p.type==='wave'){if(p.ss>0||p.hrs>0)return;p.mp-=cost;if(p.mp<1)p.exh=true;p.ss=3;p.emT=0;p.hitSh=false;buzz(200,.4,'sawtooth')}
  else if(p.type==='bam'){p.mp-=cost;if(p.mp<1)p.exh=true;const o=opp(p),a0=Math.atan2(o.y-p.y,o.x-p.x);[-.4,-.2,0,.2,.4].forEach(d=>{const a=a0+d;pn.push({o:p,x:p.x+Math.cos(a)*R,y:p.y+Math.sin(a)*R,dx:Math.cos(a),dy:Math.sin(a),s:440,sh:false,dmg:3,bam:true,g:3,stk:-1,b:0})});buzz(450,.12,'triangle')}
  else if(p.type==='pen'){pn=pn.filter(q=>!(q.o===p&&q.sh));p.mp-=cost;if(p.mp<1)p.exh=true;
-  const w=[[p.x,-1,0],[W-p.x,1,0],[p.y,0,-1],[W-p.y,0,1]].sort((a,b)=>a[0]-b[0])[0],a=Math.atan2(w[2],w[1])+(Math.random()-.5);
-  pn.push({o:p,x:p.x,y:p.y,dx:Math.cos(a),dy:Math.sin(a),s:420,sh:true,b:0,life:8,stk:-1});buzz(500,.1,'sawtooth')}}
+  const w=[[p.x,-1,0],[W-p.x,1,0],[p.y,0,-1],[W-p.y,0,1]].sort((a,b)=>a[0]-b[0])[0],sd=SEED!=null?SEED:(Math.random()*1e5|0),a=Math.atan2(w[2],w[1])+((sd%1000)/1000-.5);LASTSEED=sd;
+  pn.push({o:p,x:p.x,y:p.y,dx:Math.cos(a),dy:Math.sin(a),s:420,sh:true,b:0,life:8,rs:sd,stk:-1});buzz(500,.1,'sawtooth')}}
 function other(p,o,i,dt){if(p.type==='wave'&&p.ss>0){p.ss-=dt;p.emT-=dt;if(p.emT<=0&&p.stun<=0&&over<0){p.emT=.18;emit(p,true)}if(p.ss<=0){p.ss=0;p.hrs=1}}if(p.type==='whip'){if(p.wh){p.wh.t-=dt;if(p.wh.t<=0){p.wh=null;p.wcd=.35}}}}
 function bamAtk(p){if(mode!=='play'||over>=0||p.stun>0||p.pcd>0||p.mp<10)return;p.mp-=10;if(p.mp<1)p.exh=true;p.pcd=.7;
  const o=opp(p),dx=o.x-p.x,dy=o.y-p.y,d=Math.hypot(dx,dy)||1;
@@ -345,9 +368,9 @@ function wavesStep(dt){const melt=[false,false];
  for(let k=wv.length-1;k>=0;k--){const q=wv[k],o=opp(q.o);q.x+=q.dx*q.s*dt;q.y+=q.dy*q.s*dt;q.w+=30*dt;q.trav+=q.s*dt;
   if(!o.dash&&Math.hypot(o.x-q.x,o.y-q.y)<R+q.w){
    if(q.sh){melt[P.indexOf(o)]=true;if(!q.o.hitSh){q.o.hitSh=true;q.o.ult=cap(q.o.ult+10);o.ult=cap(o.ult+1)}}
-   else{o.hp=Math.max(0,o.hp-8);o.hit=.3;q.o.ult=cap(q.o.ult+5);o.ult=cap(o.ult+1);buzz(200,.12,'square');if(o.hp<=0)over=P.indexOf(q.o);wv.splice(k,1);continue}}
+   else{o.hp=Math.max(0,o.hp-8);o.hit=.3;q.o.ult=cap(q.o.ult+5);o.ult=cap(o.ult+1);buzz(200,.12,'square');0;wv.splice(k,1);continue}}
   if(q.x<-20||q.x>W+20||q.y<-20||q.y>W+20||q.trav>q.rng)wv.splice(k,1)}
- melt.forEach((m,j)=>{if(m&&over<0){const o=P[j];o.hp=Math.max(0,o.hp-8*dt);o.slow=.3;if(o.hp<=0)over=1-j}})}
+ melt.forEach((m,j)=>{if(m&&over<0){const o=P[j];o.hp=Math.max(0,o.hp-8*dt);o.slow=.3;0}})}
 function drawMama(){const a=performance.now()-mam;if(a>900)return;g.save();g.globalAlpha=a<200?1:Math.max(0,1-(a-200)/700);g.textAlign='center';g.textBaseline='middle';g.font='900 74px sans-serif';g.lineWidth=8;g.strokeStyle='#000';g.fillStyle='#ffe066';g.strokeText('MAMA!!!',W/2,W/2);g.fillText('MAMA!!!',W/2,W/2);g.restore()}
 function pensStep(dt){
  for(let k=pn.length-1;k>=0;k--){const q=pn[k],o=opp(q.o);
@@ -357,10 +380,10 @@ function pensStep(dt){
   for(let s=0;s<n;s++){q.x+=q.dx*q.s*dt/n;q.y+=q.dy*q.s*dt/n;
    if(!o.dash&&Math.hypot(o.x-q.x,o.y-q.y)<R+3){let dmg;
     if(q.bam){dmg=q.dmg;o.dot=3}else if(q.sh){dmg=3+14*Math.min(1,Math.hypot(o.x-q.o.x,o.y-q.o.y)/600)+Math.min(q.b,6)*1.5}else{dmg=q.dmg;if(o.stun<.2){o.stun=.2;o.kx=o.ky=0}o.dash=null;o.skill=null;o.wh=null}
-    o.hp=Math.max(0,o.hp-dmg);o.hit=.4;q.o.ult=cap(q.o.ult+(q.g||(q.sh?10:5)));o.ult=cap(o.ult+1);buzz(q.sh?160:240,.12,'square');if(o.hp<=0)over=P.indexOf(q.o);pn.splice(k,1);break}
+    o.hp=Math.max(0,o.hp-dmg);o.hit=.4;q.o.ult=cap(q.o.ult+(q.g||(q.sh?10:5)));o.ult=cap(o.ult+1);buzz(q.sh?160:240,.12,'square');0;pn.splice(k,1);break}
    const hx=q.x<0||q.x>W,hy=q.y<0||q.y>W;
    if(hx||hy){q.x=Math.min(W,Math.max(0,q.x));q.y=Math.min(W,Math.max(0,q.y));
-    if(q.sh){if(hx)q.dx=-q.dx;if(hy)q.dy=-q.dy;q.b++;q.s=Math.min(900,q.s*1.1);const a=Math.atan2(q.dy,q.dx)+(Math.random()-.5)*.25;q.dx=Math.cos(a);q.dy=Math.sin(a);buzz(300+q.b*40,.05,'square')}
+    if(q.sh){if(hx)q.dx=-q.dx;if(hy)q.dy=-q.dy;q.b++;q.s=Math.min(900,q.s*1.1);const a=Math.atan2(q.dy,q.dx)+(rnd(q)-.5)*.25;q.dx=Math.cos(a);q.dy=Math.sin(a);buzz(300+q.b*40,.05,'square')}
     else{q.stk=0;break}}
   }}}
 function drawWhip(p,x,y){g.save();const dim=p.stun>0?.3:1;
@@ -378,10 +401,10 @@ function bump(dt){
   [a,b].forEach(p=>{p.vx=p.vy=0;if(p.dash){p.dash=null;p.rest=.2}cl(p)});buzz(300,.08,'triangle')}
 }
 function itemsStep(dt){
- spT-=dt;if(spT<=0){spT+=15;['hp','mp'].forEach(t=>items[t]={x:30+Math.random()*(W-60),y:30+Math.random()*(W-60),t:0})}
- for(const k in items){const it=items[k];it.t+=dt;P.forEach(p=>{if(items[k]&&Math.hypot(p.x-it.x,p.y-it.y)<R+11){p[k]=k==='hp'?p.mh:p.mm;delete items[k];buzz(700,.15,'sine')}})}
+ spT-=dt;if(spT<=0){spT+=15;if(myRole===0){['hp','mp'].forEach(t=>items[t]={x:30+Math.random()*(W-60),y:30+Math.random()*(W-60),t:0});sendEv('item_spawn',{items})}}
+ for(const k in items){const it=items[k];it.t+=dt;[P[myRole]].forEach(p=>{if(items[k]&&Math.hypot(p.x-it.x,p.y-it.y)<R+11){p[k]=k==='hp'?p.mh:p.mm;delete items[k];sendEv('item_take',{k});buzz(700,.15,'sine')}})}
 }
-function loop(n){const dt=Math.min(.033,(n-last)/1000);last=n;cdT+=dt;if(mode==='play'){update(dt);if(over<0){bump(dt);itemsStep(dt);pensStep(dt);wavesStep(dt)}}draw();requestAnimationFrame(loop)}
+function loop(n){const dt=Math.min(.033,(n-last)/1000);last=n;cdT+=dt;if(mode==='play'){const rp=P[1-myRole];if(gameChannel&&rp&&rp.tx!=null){const k=Math.min(1,dt*20);rp.x+=(rp.tx-rp.x)*k;rp.y+=(rp.ty-rp.y)*k}update(dt);if(over<0)P.forEach((p,i)=>{if(p.hp<=0&&(i===myRole||!gameChannel)){over=1-i;if(i===myRole)sendEv('ko',{loser:i})}});if(over<0){bump(dt);itemsStep(dt);pensStep(dt);wavesStep(dt)}}draw();requestAnimationFrame(loop)}
 const CH=[{n:'박수민',c:'#d94fff',type:'whip',mh:110,mm:90,d:'채찍 근접형. Ctrl로 사정거리(약 120) 안의 상대에게 채찍을 휘두른다(마나 10, 피해 9, 공격 간격 0.5초). Shift로 충전(마나 25)한 채찍이 맞으면 상대 1.2초 스턴. 체력 110 / 마나 90. 대쉬 없음.'},{n:'이도훈',c:'#29b6f6',type:'pen',d:'연필 원거리형. Ctrl로 연필을 날린다(마나 10, 쿨타임 0.5초). 멀리서 맞힐수록 아프고(3~17) 0.2초 스턴. Shift(마나 30)는 벽에 튕기며 점점 빨라지고 세지는 연필(최대 8초). 대쉬 없음.'},{n:'김세준',c:'#e9c46a',type:'wave',d:'음파형. Ctrl로 짧은 사정거리의 음파(마나 10, 피해 8, 쿨타임 0.5초). Shift(마나 30)는 3초간 근거리 음파를 쏟아 맞는 동안 피가 녹고 느려진다. 끝나면 1초간 성대결절. 대쉬 없음.'},{n:'조현우',c:'#7cb342',type:'bam',d:'대나무형. Ctrl로 대나무를 던진다(마나 10, 피해 4, 쿨타임 0.7초, 3초간 초당 4 도트). Shift(마나 30)는 5개를 부채꼴로 던진다(개당 피해 3). 대쉬 없음.'}];
 const $=id=>document.getElementById(id);
 let sel=[null,null],pick=0,prev=null;
@@ -404,7 +427,7 @@ function startCharSelect(){
  sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select');
 }
 
-$('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1)return;const i=+b.dataset.i;if(prev===i)choose(i);else{prev=i;$('desc').innerHTML=`<b style="color:${CH[i].c}">${CH[i].n}</b> — ${CH[i].d}`;refresh();buzz(520,.06,'triangle')}};
+$('grid').onclick=e=>{const b=e.target.closest('.card');if(!b||pick>1||(gameChannel&&pick!==myRole))return;const i=+b.dataset.i;if(prev===i)choose(i);else{prev=i;$('desc').innerHTML=`<b style="color:${CH[i].c}">${CH[i].n}</b> — ${CH[i].d}`;refresh();buzz(520,.06,'triangle')}};
 
 function startCount(){[0,1].forEach(i=>{const c=CH[sel[i]];Object.assign(CFG[i],{color:c.c,type:c.type,mh:c.mh,mm:c.mm})});[0,1].forEach(i=>{const n=$('n'+i);n.textContent=CH[sel[i]].n+' ('+(i+1)+'P)';n.style.color=CH[sel[i]].c});show('game');reset();mode='count';let j=0;(function t(){if(j<3){cd=3-j;j++;cdT=0;buzz(400+j*80,.15,'triangle');setTimeout(t,1000)}else{mode='play';buzz(800,.25,'square')}})()}
 
@@ -467,5 +490,8 @@ function bindMobileAction(id,fn){const b=$(id);if(!b)return;b.addEventListener('
 bindMobileAction('attackButton',()=>{if(P&&P[myRole])useSkill(P[myRole])});
 bindMobileAction('skillButton',()=>{const p=P&&P[myRole];if(!p||mode!=='play'||over>=0)return;if(p.type==='def'){p.shift=true;tryDash(p);p.shift=false}else shiftAbility(p)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseJoystick()});
+const _useSkill=useSkill,_shiftAbility=shiftAbility;
+function wrapAct(orig,kind){return function(p){if(REMOTE||!gameChannel||p!==P[myRole])return orig(p);const mp0=p.mp,r=orig(p);if(p.mp<mp0)sendEv('act',{role:myRole,k:kind,seed:kind==='shift'&&p.type==='pen'?LASTSEED:null});return r}}
+useSkill=wrapAct(_useSkill,'skill');shiftAbility=wrapAct(_shiftAbility,'shift');
 reset();requestAnimationFrame(loop);
 </script></body></html>
