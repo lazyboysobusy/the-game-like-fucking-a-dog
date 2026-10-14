@@ -154,7 +154,7 @@ body.shk{animation:shk .4s}
  <div class="mobile-joystick-zone"><div class="joystick" id="joystick"><div class="joystick-ring"></div><div class="joystick-knob" id="joystickKnob"></div></div></div>
  <div class="mobile-action-zone"><button class="mobile-action attack-button" id="attackButton" type="button">공격</button><button class="mobile-action skill-button" id="skillButton" type="button">능력</button><button class="mobile-action ult-button" id="ultButton" type="button">필살</button></div>
 </div>
-<div class="help">방향키 및 조작 · 벽에 부딪히면 1.5초 스턴 · Enter로 재시작 · 궁극기 100%에서 Space(모바일은 필살 버튼)</div>
+<div class="help">방향키 및 조작 · 벽에 부딪히면 튕겨 나와요 · Enter로 재시작 · 궁극기 100%에서 Space(모바일은 필살 버튼)</div>
 <div id="testBar" hidden><div id="tInfo">샌드백에 공격해보세요</div><button id="tChange" type="button">캐릭터 변경</button><button id="tHeal" type="button">회복</button><button id="tUlt" type="button">궁극기 충전</button><label><input type="checkbox" id="tMana" checked>마나 무한</label><label><input type="checkbox" id="tMove">샌드백 이동</label><button id="tExit" type="button">나가기</button></div>
 </div>
 
@@ -294,12 +294,12 @@ function wallHit(p){
  let nx=0,ny=0;
  if(p.x<R){p.x=R;nx=1}else if(p.x>W-R){p.x=W-R;nx=-1}
  if(p.y<R){p.y=R;ny=1}else if(p.y>W-R){p.y=W-R;ny=-1}
- if((nx||ny)&&p.stun<=0){p.stun=1.5;p.dash=null;p.skill=null;p.vx=p.vy=0;p.kx=nx*320;p.ky=ny*320;buzz(110,1.2)}
+ if(nx||ny){p.dash=null;p.vx=p.vy=0;p.bx=nx*240;p.by=ny*240;if(!(p.wl>0)){buzz(120,.08,'triangle');p.wl=.2}}
 }
 function update(dt){
  P.forEach((p,i)=>{
   if(i === myRole) {
-    p.mp=Math.min(p.mm,p.mp+(p.ss>0?0:6)*dt);p.hit=Math.max(0,p.hit-dt);p.wcd-=dt;p.pcd-=dt;p.slow-=dt;p.hrs-=dt;if(p.dot>0){p.dot-=dt;if(over<0){p.hp=Math.max(0,p.hp-4*dt);if(p.hp<=0)over=1-P.indexOf(p)}}if(p.skill&&p.skill.ph==='wind'){p.skill.t-=dt;if(p.skill.t<=0)p.skill={ph:'slash',rot:0,hit:false}}
+    p.mp=Math.min(p.mm,p.mp+(p.ss>0?0:6)*dt);p.hit=Math.max(0,p.hit-dt);p.wcd-=dt;p.wl-=dt;p.pcd-=dt;p.slow-=dt;p.hrs-=dt;if(p.dot>0){p.dot-=dt;if(over<0){p.hp=Math.max(0,p.hp-4*dt);if(p.hp<=0)over=1-P.indexOf(p)}}if(p.skill&&p.skill.ph==='wind'){p.skill.t-=dt;if(p.skill.t<=0)p.skill={ph:'slash',rot:0,hit:false}}
     p.trail.forEach(t=>t.l-=dt);p.trail=p.trail.filter(t=>t.l>0);
     if(over<0){
       if(p.dash){
