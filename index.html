@@ -91,6 +91,11 @@ body.shk{animation:shk .4s}
  #title,#select,#wrap{visibility:hidden!important;pointer-events:none!important}
 }
 @keyframes rotatePhone{from{transform:rotate(0deg)}to{transform:rotate(90deg)}}
+#testBar{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:20;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;max-width:96vw;background:rgba(20,21,27,.88);padding:6px 8px;border-radius:10px;font-size:12px;color:#eceef5}
+#testBar button{padding:6px 10px;border:0;border-radius:6px;background:#2a2d3a;color:#eceef5;cursor:pointer;font-size:12px}
+#testBar label{display:flex;align-items:center;gap:4px;cursor:pointer}
+#tInfo{width:100%;text-align:center;color:#ffd166}
+@media (max-height:480px){#testBar{bottom:2px;font-size:11px;padding:3px 6px;gap:4px}#testBar button{padding:4px 8px}}
 </style></head><body>
 <div id="rotateNotice"><div class="rotate-icon">📱 ↻</div><div style="font-size:22px">휴대폰을 가로로 돌려주세요</div><div style="font-size:14px;font-weight:500;opacity:.75">가로 화면에서 플레이할 수 있어요</div></div>
 
@@ -146,6 +151,7 @@ body.shk{animation:shk .4s}
  <div class="mobile-action-zone"><button class="mobile-action attack-button" id="attackButton" type="button">공격</button><button class="mobile-action skill-button" id="skillButton" type="button">능력</button></div>
 </div>
 <div class="help">방향키 및 조작 · 벽에 부딪히면 1.5초 스턴 · Enter로 재시작</div>
+<div id="testBar" hidden><div id="tInfo">샌드백에 공격해보세요</div><button id="tChange" type="button">캐릭터 변경</button><button id="tHeal" type="button">회복</button><label><input type="checkbox" id="tMana" checked>마나 무한</label><label><input type="checkbox" id="tMove">샌드백 이동</label><button id="tExit" type="button">나가기</button></div>
 </div>
 
 <script>
@@ -259,7 +265,7 @@ const cv=document.getElementById('c'),g=cv.getContext('2d'),W=500,R=16,BL=46;
 const CFG=[
  {color:'#4c8dff',keys:{KeyE:[0,-1],KeyD:[0,1],KeyS:[-1,0],KeyF:[1,0]},shift:'ShiftLeft',skill:'ControlLeft'},
  {color:'#ff5a5f',keys:{ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]},shift:'ShiftRight',skill:'ControlRight',alt:'Slash'}];
-let P,sk=[],mt=[],sched=[],pn=[],wv=[],mam=-9999,items={},spT=15,mode='title',cd=0,cdT=0,over=-1,last=performance.now(),ac;
+let testMode=false,infMana=true,dMove=false,P,sk=[],mt=[],sched=[],pn=[],wv=[],mam=-9999,items={},spT=15,mode='title',cd=0,cdT=0,over=-1,last=performance.now(),ac;
 function reset(){over=-1;items={};spT=15;pn=[];wv=[];sk=[];mt=[];sched=[];P=CFG.map((c,i)=>({c,x:i?W-90:90,y:W/2,kx:0,ky:0,hp:c.mh||100,mp:c.mm||100,mh:c.mh||100,mm:c.mm||100,type:c.type||'def',stun:0,rest:0,hit:0,dash:null,trail:[],held:[],shift:false,vx:0,vy:0,bx:0,by:0,ult:0,cnt:0,ccnt:0,wcd:0,pcd:0,chg:false,wh:null,slow:0,hrs:0,ss:0,emT:0,dot:0,moving:false,skill:null,ang:i?Math.PI:0}));}
 function buzz(f,d,type){try{ac=ac||new AudioContext();const o=ac.createOscillator(),v=ac.createGain();o.type=type||'sawtooth';o.frequency.value=f;v.gain.value=.05;o.connect(v);v.connect(ac.destination);o.start();v.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.stop(ac.currentTime+d)}catch(e){}}
 function tryDash(p){
@@ -443,16 +449,16 @@ function itemsStep(dt){
  spT-=dt;if(spT<=0){spT+=15;if(myRole===0){['hp','mp'].forEach(t=>items[t]={x:30+Math.random()*(W-60),y:30+Math.random()*(W-60),t:0});sendEv('item_spawn',{items})}}
  for(const k in items){const it=items[k];it.t+=dt;[P[myRole]].forEach(p=>{if(items[k]&&Math.hypot(p.x-it.x,p.y-it.y)<R+11){p[k]=k==='hp'?p.mh:p.mm;delete items[k];sendEv('item_take',{k});buzz(700,.15,'sine')}})}
 }
-function tick(){const n=performance.now(),dt=Math.min(.05,(n-last)/1000);last=n;cdT+=dt;if(mode==='play'){const rp=P[1-myRole];if(gameChannel&&rp&&rp.tx!=null){const k=Math.min(1,dt*20);rp.x+=(rp.tx-rp.x)*k;rp.y+=(rp.ty-rp.y)*k}update(dt);if(over<0)P.forEach((p,i)=>{if(p.hp<=0&&(i===myRole||!gameChannel)){over=1-i;if(i===myRole)sendEv('ko',{loser:i})}});if(over<0){bump(dt);itemsStep(dt);pensStep(dt);wavesStep(dt);schedStep(dt);skullsStep(dt);meteorsStep(dt)}}}
+function tick(){const n=performance.now(),dt=Math.min(.05,(n-last)/1000);last=n;cdT+=dt;if(mode==='play'){if(testMode){dummyStep(dt);if(infMana){P[0].mp=P[0].mm;P[0].exh=false}}const rp=P[1-myRole];if(gameChannel&&rp&&rp.tx!=null){const k=Math.min(1,dt*20);rp.x+=(rp.tx-rp.x)*k;rp.y+=(rp.ty-rp.y)*k}update(dt);if(over<0)P.forEach((p,i)=>{if(!testMode&&p.hp<=0&&(i===myRole||!gameChannel)){over=1-i;if(i===myRole)sendEv('ko',{loser:i})}});if(over<0){bump(dt);if(!testMode)itemsStep(dt);pensStep(dt);wavesStep(dt);schedStep(dt);skullsStep(dt);meteorsStep(dt)}}}
 let workerOK=false;
 function loop(){if(!workerOK)tick();draw();requestAnimationFrame(loop)}
 try{const w=new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},16)'],{type:'text/javascript'})));w.onmessage=function(){workerOK=true;tick()}}catch(e){console.warn('worker 실패',e)}
 const CH=[{n:'박수민',c:'#d94fff',type:'whip',mh:110,mm:90,d:'채찍 근접형. Ctrl로 사정거리(약 120) 안의 상대에게 채찍을 휘두른다(마나 10, 피해 9, 공격 간격 0.5초). Shift로 충전(마나 25)한 채찍이 맞으면 상대 1.2초 스턴. 체력 110 / 마나 90. 대쉬 없음.'},{n:'이도훈',c:'#29b6f6',type:'pen',d:'연필 원거리형. Ctrl로 연필을 날린다(마나 10, 쿨타임 0.5초). 멀리서 맞힐수록 아프고(3~17) 0.2초 스턴. Shift(마나 30)는 벽에 튕기며 점점 빨라지고 세지는 연필(최대 8초). 대쉬 없음.'},{n:'김세준',c:'#e9c46a',type:'wave',d:'음파형. Ctrl로 짧은 사정거리의 음파(마나 10, 피해 8, 쿨타임 0.5초). Shift(마나 10 + 지속 중 초당 7씩 소모)는 3초간 근거리 음파를 쏟아 맞는 동안 피가 녹고 느려진다. 끝나면 1초간 성대결절. 대쉬 없음.'},{n:'조현우',c:'#7cb342',type:'bam',d:'대나무형. Ctrl로 대나무를 던진다(마나 10, 피해 4, 쿨타임 0.7초, 3초간 초당 4 도트). Shift(마나 30)는 5개를 부채꼴로 던진다(개당 피해 3). 대쉬 없음.'},{n:'김동연',c:'#b0bec5',type:'bone',mh:90,mm:100,d:'뼈다귀 원거리형. Ctrl로 뼈를 날린다(마나 10, 피해 7, 쿨타임 0.5초). Shift(마나 40)는 드래곤 머리뼈 5개가 차례로 나타나 준비 동작 뒤 상대 쪽으로 레이저를 쏜다(개당 피해 8, 발사 땐 화면 진동). 체력 90.'},{n:'조태혁',c:'#a1887f',type:'rock',mh:110,mm:90,d:'돌 원거리형. Ctrl로 돌을 던지면 일정 거리에서 좌우 대각선으로 갈라진다(마나 10, 본체 9, 조각 3). Shift(마나 40)는 상대가 있던 자리에 표시가 뜨고 0.75초 뒤 메테오가 떨어진다(피해 24, 스턴 0.5초). 체력 110 / 마나 90.'},{n:'김예찬',c:'#ff9800',type:'tang',d:'귤 원거리형. Ctrl로 귤을 던지고(마나 10, 피해 6) 10번 던지면 다음 한 번은 2배 피해의 특수 귤. Shift(마나 35)는 포토 카드 4장을 회전시키며 던진다(장당 피해 8, 10번째 카드는 2배).'}];
 const $=id=>document.getElementById(id);
 let sel=[null,null],pick=0,prev=null;
-function show(id){$('title').hidden=id!=='title';$('select').hidden=id!=='select';$('wrap').hidden=id!=='game'}
-function half(i,ci,done){const h=$('half'+i);h.innerHTML=`<div class="lab">${i+1}P</div>`+(ci==null?'<div class="pv q">?</div><div class="cn">선택 대기</div>':`<div class="pv" style="background:${CH[ci].c}">${CH[ci].type?'':`<i style="background:${CH[ci].c}"></i>`}</div><div class="cn">${CH[ci].n}${done?' ✔':''}</div>`);h.classList.toggle('on',i===pick);h.classList.toggle('done',!!done)}
-function refresh(){[0,1].forEach(j=>half(j,j===pick&&prev!=null?prev:sel[j],sel[j]!=null));$('hint').textContent=pick>1?'준비 완료!':`${pick+1}P 차례 — 캐릭터를 눌러 확인하고, 한 번 더 눌러 선택하세요`;$('grid').innerHTML=CH.map((c,i)=>{const t=sel[0]===i&&pick===1;return `<button class="card${prev===i?' sel':''}${t?' taken':''}" data-i="${i}" ${t?'disabled':''} style="--c:${c.c}"><span class="dot"></span>${c.n}</button>`}).join('')}
+function show(id){$('title').hidden=id!=='title';$('select').hidden=id!=='select';$('wrap').hidden=id!=='game';$('testBar').hidden=!(testMode&&id==='game')}
+function half(i,ci,done){const h=$('half'+i);if(testMode&&i===1){h.innerHTML='<div class="lab">상대</div><div class="pv" style="background:#78909c"></div><div class="cn">샌드백</div>';h.classList.remove('on','done');return}h.innerHTML=`<div class="lab">${i+1}P</div>`+(ci==null?'<div class="pv q">?</div><div class="cn">선택 대기</div>':`<div class="pv" style="background:${CH[ci].c}">${CH[ci].type?'':`<i style="background:${CH[ci].c}"></i>`}</div><div class="cn">${CH[ci].n}${done?' ✔':''}</div>`);h.classList.toggle('on',i===pick);h.classList.toggle('done',!!done)}
+function refresh(){[0,1].forEach(j=>half(j,j===pick&&prev!=null?prev:sel[j],sel[j]!=null));$('hint').textContent=testMode?'테스트할 캐릭터를 눌러 확인하고, 한 번 더 눌러 선택하세요':pick>1?'준비 완료!':`${pick+1}P 차례 — 캐릭터를 눌러 확인하고, 한 번 더 눌러 선택하세요`;$('grid').innerHTML=CH.map((c,i)=>{const t=sel[0]===i&&pick===1;return `<button class="card${prev===i?' sel':''}${t?' taken':''}" data-i="${i}" ${t?'disabled':''} style="--c:${c.c}"><span class="dot"></span>${c.n}</button>`}).join('')}
 function fx(el,c){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');document.body.classList.remove('shk');void document.body.offsetWidth;document.body.classList.add('shk');navigator.vibrate&&navigator.vibrate([40,30,60]);buzz(300,.15,'square');buzz(700,.2,'triangle');
  const r=el.getBoundingClientRect();for(let n=0;n<18;n++){const d=document.createElement('b');d.className='pt';d.style.cssText=`left:${r.left+r.width/2}px;top:${r.top+r.height/2}px;background:${c}`;document.documentElement.appendChild(d);const a=Math.PI*2*n/18,s=70+Math.random()*80;d.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(a)*s}px),calc(-50% + ${Math.sin(a)*s}px)) scale(0)`,opacity:0}],{duration:600,easing:'ease-out'}).onfinish=()=>d.remove()}}
 
@@ -462,9 +468,22 @@ function choose(i){
  if(gameChannel) {
    gameChannel.send({type:'broadcast', event:'select_sync', payload:{index:k, charIndex:i}});
  }
+ if(testMode){setTimeout(startTest,900);return}
  if(pick>1)setTimeout(startCount,1100);
 }
 
+function enterTest(){if(gameChannel&&supabaseClient){try{supabaseClient.removeChannel(gameChannel)}catch(e){}}gameChannel=null;myRole=0;testMode=true;startTestSelect()}
+function startTestSelect(){mode='title';sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select')}
+function startTest(){const c=CH[sel[0]];Object.assign(CFG[0],{color:c.c,type:c.type,mh:c.mh,mm:c.mm});Object.assign(CFG[1],{color:'#78909c',type:'dummy',mh:300,mm:100});
+ const n0=$('n0'),n1=$('n1');n0.textContent=c.n+' (테스트)';n0.style.color=c.c;n1.textContent='샌드백';n1.style.color='#78909c';
+ show('game');reset();const d=P[1];d.hx=d.x=380;d.hy=d.y=250;d.t=0;d.dmgTot=0;d.dmgLog=[];d.ph=d.hp;d.lastHit=performance.now();d.last=0;mode='play'}
+function dummyStep(dt){const d=P[1];if(!d||d.type!=='dummy')return;const now=performance.now();
+ const x=d.ph-d.hp;if(x>0){d.dmgTot+=x;d.dmgLog.push([now,x]);d.lastHit=now;if(x>.5)d.last=+x.toFixed(1)}
+ d.hit=Math.max(0,d.hit-dt);d.slow-=dt;if(d.stun>0)d.stun-=dt;d.kx=d.ky=0;d.bx=d.by=0;if(d.dot>0){d.dot-=dt;d.hp-=4*dt}
+ if(d.stun<=0)d.t+=dt;if(!dMove){d.x=d.hx;d.y=d.hy}else if(d.stun<=0){d.x=d.hx+Math.sin(d.t*1.1)*110;d.y=d.hy+Math.sin(d.t*.8)*130}
+ if(d.hp<=0||(now-d.lastHit>4000&&d.hp<d.mh))d.hp=d.mh;d.ph=d.hp;
+ d.dmgLog=d.dmgLog.filter(e=>now-e[0]<3000);const dps=d.dmgLog.reduce((a,e)=>a+e[1],0)/3;
+ $('tInfo').textContent=`마지막 피해 ${d.last} · 총 ${Math.round(d.dmgTot)} · 최근 3초 ${dps.toFixed(1)}/초`}
 function startCharSelect(){
  sel=[null,null];pick=0;prev=null;$('desc').textContent='';refresh();show('select');
 }
@@ -504,7 +523,7 @@ $('joinCancel').onclick=()=>{$('joinModal').hidden=true;};
 $('waitingCancel').onclick=()=>{$('waitingModal').hidden=true;if(gameChannel&&supabaseClient)supabaseClient.removeChannel(gameChannel);};
 
 $('adminBtn').onclick=()=>{$('pw').hidden=false;$('pwIn').value='';$('pwMsg').textContent='';$('pwIn').focus()};
-function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';show('title')},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
+function checkPw(){const m=$('pwMsg');if($('pwIn').value==='040830'){m.textContent='인증 완료 ✔ 캐릭터 테스트 모드로 이동';m.className='ok';setTimeout(()=>{$('pw').hidden=true;m.textContent='';enterTest()},700)}else{m.textContent='비밀번호가 틀렸어요';m.className='bad';$('pwIn').value=''}}$('pwOk').onclick=checkPw;$('pwCancel').onclick=()=>{$('pw').hidden=true};
 $('pwIn').onkeydown=e=>{if(e.key==='Enter')checkPw();if(e.key==='Escape')$('pw').hidden=true};
 
 // Mobile joystick and two action buttons.
@@ -535,5 +554,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseJoys
 const _useSkill=useSkill,_shiftAbility=shiftAbility;
 function wrapAct(orig,kind){return function(p){if(REMOTE||!gameChannel||p!==P[myRole])return orig(p);const mp0=p.mp,r=orig(p);if(p.mp<mp0)sendEv('act',{role:myRole,k:kind,seed:kind==='shift'&&p.type==='pen'?LASTSEED:null});return r}}
 useSkill=wrapAct(_useSkill,'skill');shiftAbility=wrapAct(_shiftAbility,'shift');
+$('tChange').onclick=()=>startTestSelect();
+$('tExit').onclick=()=>{testMode=false;mode='title';$('testBar').hidden=true;show('title')};
+$('tHeal').onclick=()=>{const p=P[0],d=P[1];p.hp=p.mh;p.mp=p.mm;p.stun=0;p.exh=false;p.cnt=0;p.ccnt=0;p.ss=0;p.hrs=0;p.dot=0;p.pcd=0;d.hp=d.mh;d.ph=d.hp;d.stun=0;d.dot=0;d.dmgTot=0;d.dmgLog=[];d.last=0;pn=[];wv=[];sk=[];mt=[];sched=[]};
+$('tMana').onchange=e=>{infMana=e.target.checked};$('tMove').onchange=e=>{dMove=e.target.checked};
 reset();requestAnimationFrame(loop);
 </script></body></html>
