@@ -177,31 +177,57 @@ function sendJoin(){if(!gameChannel||isHost)return;if(lobbyIds.includes(myId))re
 function renderLobby(){$('lobbyList').innerHTML=lobbyIds.map((id,i)=>`${i+1}P${i===0?' (방장)':''}${id===myId?' ← 나':''}`).join('<br>');$('startGameBtn').hidden=!isHost;$('startGameBtn').disabled=lobbyIds.length<2;$('waitingStatus').textContent=isHost?(lobbyIds.length<2?'친구 접속 대기 중... (1/4)':`${lobbyIds.length}/4명 접속 — 시작할 수 있어요`):(lobbyIds.length?`방장이 시작하길 기다리는 중... (${lobbyIds.length}/4)`:'방에 접속하는 중...')}
 let myRole = 0;
 function generateRoomCode(){return Math.random().toString(36).substring(2,8).toUpperCase()}
-// Supabase 채널 API와 비슷한 작은 어댑터로 기존 게임 이벤트 처리부를 유지
+// Socket.IO 서버용 어댑터 (기존 채널 API와 같은 모양으로 만들어서 게임 코드는 그대로 써요)
+// - 서버가 연결을 끊었다가(Cloud Run은 WebSocket을 5분 정도마다 끊어요) 다시 붙으면 자동으로 방에 다시 들어가요.
+let curCh=null,enterRetry=0;
+function roomError(msg){const w=$('waitingStatus');if(w)w.textContent=msg}
+function leaveToTitle(msg){
+ if(msg)alert(msg);
+ testMode=false;mode='title';
+ if(gameChannel)supabaseClient.removeChannel(gameChannel);
+ gameChannel=null;lobbyIds=[];lobbyStarted=false;over=-1;
+ ['waitingModal','joinModal','pw'].forEach(id=>{const e=$(id);if(e)e.hidden=true});
+ const tb=$('testBar');if(tb)tb.hidden=true;
+ show('title');
+}
+function onPeerLeft(id){
+ const r=lobbyIds.indexOf(id);
+ if(mode==='play'||mode==='count'){if(r>=0&&P[r])P[r].hp=0;return}      // 게임 중 나간 사람은 탈락 처리
+ if(!lobbyStarted){if(isHost&&r>=0){lobbyIds.splice(r,1);sendEv('lobby',{ids:lobbyIds});renderLobby()}return}
+ leaveToTitle('플레이어가 나가서 시작 화면으로 돌아갈게요.');
+}
+function enterRoom(first){
+ if(!curCh||!socketClient||!socketClient.connected)return;
+ const ch=curCh;
+ socketClient.emit('enter-room',{code:ch.code,role:isHost?'host':'guest',id:myId,rejoin:!first},res=>{
+  if(curCh!==ch)return;
+  if(res&&res.ok){enterRetry=0;ch.entered=true;if(first&&ch.cb)ch.cb('SUBSCRIBED');return}
+  if(!first&&enterRetry<20){enterRetry++;setTimeout(()=>enterRoom(false),1000);return}   // 재접속 중엔 상대가 아직 못 들어왔을 수 있어서 잠깐 재시도
+  curCh=null;roomError((res&&res.error)||'게임 서버 접속에 실패했어요.');
+ });
+}
+function ensureSocket(){
+ if(socketClient)return;
+ socketClient=io(GAME_SERVER_URL,{transports:['websocket'],reconnection:true,reconnectionDelay:300,reconnectionDelayMax:3000});
+ socketClient.on('connect',()=>{if(curCh)enterRoom(!curCh.entered)});
+ socketClient.on('connect_error',()=>{if(curCh&&!curCh.entered)roomError('서버에 연결하는 중... (처음에는 몇 초 걸릴 수 있어요)')});
+ socketClient.on('room-event',msg=>{if(!curCh||!msg)return;curCh.handlers.forEach(h=>{if(h.event===msg.event)h.callback({payload:msg.payload})})});
+ socketClient.on('player-disconnected',()=>{if(curCh)leaveToTitle('방장이 나갔어요. 시작 화면으로 돌아갈게요.')});
+ socketClient.on('peer-left',msg=>onPeerLeft(msg&&msg.id));
+}
 const supabaseClient={
- channel(name,opts){
-   const code=name.replace(/^room_/,'');
-   const handlers=[];
-   const ch={
-     on(_type,filter,callback){handlers.push({event:filter.event,callback});return ch},
-     subscribe(callback){
-       if(!socketClient)socketClient=io(GAME_SERVER_URL,{transports:['websocket','polling']});
-       const enter=()=>socketClient.emit('enter-room',{code,role:isHost?'host':'guest'},(res)=>{
-         if(!res||!res.ok){alert(res?.error||'게임 서버 접속에 실패했어요.');return}
-         socketClient.off('room-event',relay);
-         socketClient.on('room-event',relay);
-         callback('SUBSCRIBED');
-       });
-       const relay=(msg)=>handlers.forEach(h=>{if(h.event===msg.event)h.callback({payload:msg.payload})});
-       if(socketClient.connected)enter();else socketClient.once('connect',enter);
-       ch.send=(msg)=>{if(socketClient&&socketClient.connected)socketClient.emit('room-event',{event:msg.event,payload:msg.payload})};
-       return ch;
-     }
-   };
-   return ch;
- },
- removeChannel(ch){if(socketClient&&ch){socketClient.emit('leave-room');socketClient.off('room-event');}return Promise.resolve('ok')}
+ channel(name){
+  const ch={code:name.replace(/^room_/,''),handlers:[],entered:false,cb:null,
+   on(_type,filter,callback){ch.handlers.push({event:filter.event,callback});return ch},
+   subscribe(callback){
+    ch.cb=callback;curCh=ch;enterRetry=0;ensureSocket();
+    ch.send=msg=>{if(curCh===ch&&ch.entered&&socketClient&&socketClient.connected)socketClient.emit('room-event',{event:msg.event,payload:msg.payload})};
+    if(socketClient.connected)enterRoom(true);else roomError('서버에 연결하는 중... (처음에는 몇 초 걸릴 수 있어요)');
+    return ch}};
+  return ch},
+ removeChannel(ch){if(curCh===ch){if(socketClient)socketClient.emit('leave-room');curCh=null}return Promise.resolve('ok')}
 };
+addEventListener('pagehide',()=>{if(socketClient&&curCh)socketClient.emit('leave-room')});
 function initMultiplayerChannel(roomCode,role){
  currentRoomCode=roomCode;myRole=role;isHost=role===0;lobbyStarted=false;lobbyIds=isHost?[myId]:[];joinTries=0;
  if(gameChannel&&supabaseClient) supabaseClient.removeChannel(gameChannel);
