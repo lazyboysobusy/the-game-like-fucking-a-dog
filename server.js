@@ -1,11 +1,9 @@
 'use strict';
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 // ================= 방 관리 핵심 로직 (테스트에서도 그대로 사용) =================
-// - 방 주인(host)과 참가자는 "소켓 id"가 아니라 게임이 정한 고유 id 로 구분해요.
-//   그래서 Cloud Run 이 연결을 끊었다가(WebSocket 은 기본 5분마다 끊겨요) 다시 붙어도
-//   같은 사람으로 인식하고 방을 그대로 이어줘요.
-// - 연결이 끊겨도 GRACE_MS 동안은 방을 유지하고, 그 안에 돌아오면 아무 일도 없던 것처럼 이어져요.
 function attachGameServer(io, opts) {
   const GRACE_MS = (opts && opts.graceMs) || 20000;
   const MAX_PER_SEC = 200;                 // 한 사람이 1초에 보낼 수 있는 메시지 수(남용 방지)
@@ -92,10 +90,23 @@ function attachGameServer(io, opts) {
 if (require.main === module) {
   const { Server } = require('socket.io');
   const server = http.createServer((req, res) => {
-    if (req.url === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"ok":true}'); }
-    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-    res.end('Game server is running!');
+    if (req.url === '/health') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end('{"ok":true}');
+    }
+
+    // index.html 파일을 읽어서 웹 브라우저에 전달
+    const filePath = path.join(__dirname, 'index.html');
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+        return res.end('index.html 파일을 찾을 수 없습니다.');
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(data);
+    });
   });
+
   const io = new Server(server, {
     cors: { origin: '*' },
     maxHttpBufferSize: 1e5,
